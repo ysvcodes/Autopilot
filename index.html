@@ -38,6 +38,18 @@
       font-weight: bold;
       font-size: 1em;
     }
+    #create-account-section.show {
+      display: flex !important;
+    }
+    #create-account-modal.show {
+      opacity: 1 !important;
+      transform: translateY(0) !important;
+    }
+    #create-account-modal.hide {
+      opacity: 0 !important;
+      transform: translateY(40px) !important;
+      transition: opacity 0.3s, transform 0.3s;
+    }
   </style>
 </head>
 <body class="min-h-screen">
@@ -45,8 +57,8 @@
     <!-- Left: Login -->
     <div class="flex-1 flex flex-col justify-center items-center pt-6" style="background-color: #001322;">
       <div class="w-full max-w-md mx-auto">
-        <div class="flex flex-col items-center mb-8">
-          <img src="assets/autoGT.png" alt="autoGT Logo" class="logo-large logo-gap" style="max-width: 80%; max-height: 19.2rem;" />
+        <div class="flex flex-col items-center mb-8 mt-8">
+          <img src="assets/autoGT.png" alt="autoGT Logo" class="logo-large logo-gap" style="max-width: 320px; max-height: 180px; margin-bottom: 1.5rem;" />
           <h1 class="text-3xl md:text-4xl font-extrabold" style="background: linear-gradient(90deg, #1397d4 0%, #0769b0 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; color: transparent;"><span id="typewriter"></span></h1>
           <p class="text-center mb-2" style="color: #eeecea; opacity: 0.8;">Sign in to your account to manage your automations</p>
         </div>
@@ -89,8 +101,8 @@
     </div>
     <!-- Right: Features -->
     <div class="flex-1 flex flex-col justify-center items-center relative right-section-bg px-8 py-12 pt-6 overflow-hidden" style="background: #f4f1ef;">
-      <div class="w-full max-w-lg mx-auto relative z-10">
-        <img src="assets/autoG.png" alt="autoG Logo" class="logo-large logo-gap" style="max-width: 80%; max-height: 19.2rem;" />
+      <div class="w-full max-w-lg mx-auto relative z-10 mt-8">
+        <img src="assets/autoGT.png" alt="autoGT Logo" class="logo-large logo-gap" style="max-width: 320px; max-height: 180px; margin-bottom: 1.5rem;" />
         <h2 class="text-3xl md:text-4xl font-extrabold mb-8" style="background: linear-gradient(90deg, #1397d4 0%, #0769b0 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; color: transparent;"><span id="typewriter2"></span><span id="typewriter-cursor" style="display:inline-block;width:1ch;">|</span></h2>
         <div class="flex flex-col mb-8">
           <div class="flex items-start gap-4 mb-6">
@@ -127,8 +139,56 @@
       </div>
     </div>
   </div>
+  <!-- Create Account Modal/Page -->
+  <div id="create-account-section" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50 hidden">
+    <div id="create-account-modal" class="bg-[#0a1a2f] rounded-2xl shadow-lg p-8 w-full max-w-md flex flex-col items-center opacity-0 translate-y-8 transition-all duration-300">
+      <!-- <img src="assets/autoGT.png" alt="AutoPilot Logo" class="logo-large logo-gap" style="max-width: 100px; margin-bottom: 1.5rem;" /> -->
+      <h2 class="text-2xl font-extrabold text-white mb-1">Create an account</h2>
+      <p class="text-slate-300 mb-6">Sign up to start using AutoPilot</p>
+      <form class="w-full flex flex-col gap-4">
+        <div>
+          <label class="block text-slate-200 font-semibold mb-1">First name</label>
+          <input type="text" placeholder="First name" required class="w-full px-4 py-3 rounded-lg border border-slate-700 bg-[#232f3e] text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all" />
+        </div>
+        <div>
+          <label class="block text-slate-200 font-semibold mb-1">Last name</label>
+          <input type="text" placeholder="Last name" required class="w-full px-4 py-3 rounded-lg border border-slate-700 bg-[#232f3e] text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all" />
+        </div>
+        <div>
+          <label class="block text-slate-200 font-semibold mb-1">Email</label>
+          <input type="email" placeholder="Email" required class="w-full px-4 py-3 rounded-lg border border-slate-700 bg-[#232f3e] text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all" />
+        </div>
+        <div>
+          <label class="block text-slate-200 font-semibold mb-1">Password</label>
+          <input type="password" placeholder="Password" required class="w-full px-4 py-3 rounded-lg border border-slate-700 bg-[#232f3e] text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all" />
+        </div>
+        <div>
+          <label class="block text-slate-200 font-semibold mb-1">Confirm Password</label>
+          <input type="password" placeholder="Confirm password" required class="w-full px-4 py-3 rounded-lg border border-slate-700 bg-[#232f3e] text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all" />
+        </div>
+        <button type="submit" class="mt-2 px-8 py-3 rounded-lg font-bold text-lg shadow transition-all sign-in-btn">Sign up</button>
+      </form>
+      <p class="text-slate-400 text-sm mt-4">By creating an account, you agree to our <a href="#" class="text-blue-400 hover:underline">Terms of Service</a></p>
+      <div class="flex items-center my-6 w-full">
+        <div class="flex-grow border-t border-slate-700"></div>
+        <span class="mx-4 text-slate-500 text-sm">Or sign up with</span>
+        <div class="flex-grow border-t border-slate-700"></div>
+      </div>
+      <div class="flex gap-4 w-full">
+        <button type="button" class="flex-1 px-4 py-2 rounded-lg border border-slate-200 bg-white text-slate-800 font-semibold flex items-center justify-center gap-2 hover:bg-slate-300 transition-all items-center min-h-12">
+          <svg class="h-5 w-5" viewBox="0 0 48 48"><g><path fill="#EA4335" d="M24 9.5c3.54 0 6.44 1.22 8.47 3.23l6.32-6.32C34.64 2.99 29.74 1 24 1 14.82 1 6.98 6.99 3.13 15.19l7.36 5.72C12.2 15.1 17.61 9.5 24 9.5z"/><path fill="#4285F4" d="M46.1 24.5c0-1.64-.15-3.22-.43-4.74H24v9.24h12.42c-.54 2.9-2.18 5.36-4.66 7.02l7.36 5.72C43.02 37.01 46.1 31.25 46.1 24.5z"/><path fill="#FBBC05" d="M10.49 28.91c-1.13-2.09-1.78-4.47-1.78-7.01s.65-4.92 1.78-7.01l-7.36-5.72C2.01 13.25 1 18.67 1 24.5s1.01 11.25 2.13 15.33l7.36-5.72z"/><path fill="#34A853" d="M24 46c5.74 0 10.64-1.99 14.47-5.23l-7.36-5.72c-2.01 1.36-4.56 2.15-7.11 2.15-6.39 0-11.8-5.6-13.51-13.19l-7.36 5.72C6.98 41.01 14.82 46 24 46z"/></g></svg>
+          Google
+        </button>
+        <button type="button" class="flex-1 px-4 py-2 rounded-lg border border-slate-200 bg-white text-slate-800 font-semibold flex items-center justify-center gap-2 hover:bg-slate-300 transition-all items-center min-h-12">
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor"><path d="M22.675 0h-21.35C.595 0 0 .592 0 1.326v21.348C0 23.408.595 24 1.325 24h11.495v-9.294H9.692v-3.622h3.128V8.413c0-3.1 1.893-4.788 4.659-4.788 1.325 0 2.463.099 2.797.143v3.24l-1.918.001c-1.504 0-1.797.715-1.797 1.763v2.313h3.587l-.467 3.622h-3.12V24h6.116C23.406 24 24 23.408 24 22.674V1.326C24 .592 23.406 0 22.675 0"/></svg>
+          Facebook
+        </button>
+      </div>
+      <button id="close-create-account" class="mt-6 text-slate-400 hover:text-white text-sm">Cancel</button>
+    </div>
+  </div>
   <script>
-    // Typewriter effect for both headings with blinking cursor for the second
+    // Typewriter effect
     document.addEventListener('DOMContentLoaded', function() {
       const text1 = 'Welcome to AutoPilot';
       const text2 = 'Automate your workflow\nwith powerful tools!';
@@ -153,11 +213,43 @@
           j++;
           setTimeout(type2, 70);
         } else {
-          // Keep cursor visible and blinking after typing is done
           cursor.style.visibility = 'visible';
         }
       }
       type1();
+    });
+    // Show create account section
+    document.addEventListener('DOMContentLoaded', function() {
+      var createAccountBtn = document.querySelector('p.text-center.text-slate-400.text-sm.mt-2 a');
+      var createAccountSection = document.getElementById('create-account-section');
+      var closeCreateAccount = document.getElementById('close-create-account');
+      var createAccountModal = document.getElementById('create-account-modal');
+      if (createAccountBtn && createAccountSection && closeCreateAccount && createAccountModal) {
+        createAccountBtn.addEventListener('click', function(e) {
+          e.preventDefault();
+          createAccountSection.classList.remove('hidden');
+          createAccountModal.classList.remove('hide');
+          setTimeout(function() {
+            createAccountModal.classList.add('show');
+          }, 10);
+        });
+        function hideModal() {
+          createAccountModal.classList.remove('show');
+          createAccountModal.classList.add('hide');
+          setTimeout(function() {
+            createAccountSection.classList.add('hidden');
+          }, 300);
+        }
+        closeCreateAccount.addEventListener('click', function() {
+          hideModal();
+        });
+        // Close modal
+        createAccountSection.addEventListener('click', function(e) {
+          if (e.target === createAccountSection) {
+            hideModal();
+          }
+        });
+      }
     });
   </script>
 </body>
