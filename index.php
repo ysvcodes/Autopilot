@@ -1,3 +1,73 @@
+<?php
+session_start();
+$signup_success = '';
+$signup_error = '';
+$final_message = '';
+$clear_form = false;
+$isSignupAttempt = false;
+// Only process and set session on POST
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['signup'])) {
+    require_once __DIR__ . '/database_connection/connection.php';
+    $first = trim($_POST['signup_first_name'] ?? '');
+    $last = trim($_POST['signup_last_name'] ?? '');
+    $email = trim($_POST['signup_email'] ?? '');
+    $pass  = $_POST['signup_password'] ?? '';
+    $confirm = $_POST['signup_confirm_password'] ?? '';
+    if (empty($first) || empty($last) || empty($email) || empty($pass) || empty($confirm)) {
+        $signup_error = 'All fields are required.';
+        $clear_form = true;
+    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $signup_error = 'Invalid email address.';
+        $clear_form = true;
+    } elseif ($pass !== $confirm) {
+        $signup_error = 'Passwords do not match.';
+        $clear_form = true;
+    } else {
+        // Store password in plain text (not recommended for production)
+        try {
+            $stmt = $pdo->prepare('INSERT INTO users (first_name, last_name, email, password_hash) VALUES (?, ?, ?, ?)');
+            $stmt->execute([$first, $last, $email, $pass]);
+            $signup_success = 'Account created successfully! You can now log in.';
+            $clear_form = true;
+        } catch (PDOException $e) {
+            if ($e->getCode() == 23000) {
+                $signup_error = 'Email already exists.';
+            } else {
+                $signup_error = 'Database error: ' . $e->getMessage();
+            }
+            $clear_form = true;
+        }
+    }
+    // Only set session and redirect if there is a message to show
+    if ($signup_success || $signup_error) {
+        $_SESSION['signup_success'] = $signup_success;
+        $_SESSION['signup_error'] = $signup_error;
+        $_SESSION['clear_form'] = $clear_form;
+        $_SESSION['isSignupAttempt'] = true;
+        header('Location: ' . $_SERVER['REQUEST_URI']);
+        exit();
+    }
+}
+// On GET, show notification only if session flag is set, then clear it
+if (isset($_SESSION['isSignupAttempt']) && $_SESSION['isSignupAttempt'] && 
+    ((isset($_SESSION['signup_success']) && $_SESSION['signup_success']) || (isset($_SESSION['signup_error']) && $_SESSION['signup_error']))) {
+    $signup_success = $_SESSION['signup_success'] ?? '';
+    $signup_error = $_SESSION['signup_error'] ?? '';
+    $clear_form = $_SESSION['clear_form'] ?? false;
+    $isSignupAttempt = true;
+    unset($_SESSION['signup_success'], $_SESSION['signup_error'], $_SESSION['clear_form'], $_SESSION['isSignupAttempt']);
+}
+// Admin login logic
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
+    $login_email = trim($_POST['login_email'] ?? '');
+    $login_password = $_POST['login_password'] ?? '';
+    if ($login_email === 'admin@gmail.com' && $login_password === 'admin') {
+        header('Location: admin.php');
+        exit();
+    }
+    // (You can add normal user login logic here later)
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -53,6 +123,11 @@
   </style>
 </head>
 <body class="min-h-screen">
+<?php if (!empty($final_message)): ?>
+  <div id="final-message-container">
+    <?= $final_message ?>
+  </div>
+<?php endif; ?>
   <div class="flex flex-col md:flex-row min-h-screen">
     <!-- Left: Login -->
     <div class="flex-1 flex flex-col justify-center items-center pt-6" style="background-color: #001322;">
@@ -62,14 +137,14 @@
           <h1 class="text-3xl md:text-4xl font-extrabold" style="background: linear-gradient(90deg, #1397d4 0%, #0769b0 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; color: transparent;"><span id="typewriter"></span></h1>
           <p class="text-center mb-2" style="color: #eeecea; opacity: 0.8;">Sign in to your account to manage your automations</p>
         </div>
-        <form class="flex flex-col gap-4">
+        <form class="flex flex-col gap-4" method="POST" action="">
           <div>
             <label class="block text-slate-200 font-semibold mb-1">Email</label>
-            <input type="email" placeholder="Email" required class="px-4 py-3 rounded-lg border border-slate-700 bg-[#232f3e] text-slate-100 w-full focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all" />
+            <input type="email" name="login_email" placeholder="Email" required class="px-4 py-3 rounded-lg border border-slate-700 bg-[#232f3e] text-slate-100 w-full focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all" />
           </div>
           <div>
             <label class="block text-slate-200 font-semibold mb-1">Password</label>
-            <input type="password" placeholder="Password" required class="px-4 py-3 rounded-lg border border-slate-700 bg-[#232f3e] text-slate-100 w-full focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all" />
+            <input type="password" name="login_password" placeholder="Password" required class="px-4 py-3 rounded-lg border border-slate-700 bg-[#232f3e] text-slate-100 w-full focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all" />
           </div>
           <p class="text-xs text-slate-400">For demo, use: john@example.com (any password)</p>
           <div class="flex items-center justify-between text-sm">
@@ -79,7 +154,7 @@
             </div>
             <a href="#" class="text-blue-400 hover:underline font-medium">Forgot your password?</a>
           </div>
-          <button type="submit" class="mt-2 px-8 py-3 rounded-lg font-bold text-lg shadow transition-all sign-in-btn">Sign in</button>
+          <button type="submit" name="login" class="mt-2 px-8 py-3 rounded-lg font-bold text-lg shadow transition-all sign-in-btn">Sign in</button>
           <p class="text-center text-slate-400 text-sm mt-2">Don't have an account? <a href="#" class="text-blue-400 hover:underline font-medium">Create an account</a></p>
           <div class="flex items-center my-4">
             <div class="flex-grow border-t border-slate-700"></div>
@@ -145,28 +220,37 @@
       <!-- <img src="assets/autoGT.png" alt="AutoPilot Logo" class="logo-large logo-gap" style="max-width: 100px; margin-bottom: 1.5rem;" /> -->
       <h2 class="text-2xl font-extrabold text-white mb-1">Create an account</h2>
       <p class="text-slate-300 mb-6">Sign up to start using AutoPilot</p>
-      <form class="w-full flex flex-col gap-4">
+      <?php if (!empty($signup_success)): ?>
+        <div id="fade-message" class="success" style="color: green; background: #d4edda; padding: 10px; border-radius: 4px; margin-bottom: 10px; text-align:center; transition: opacity 0.8s, transform 0.8s;">
+          <?= htmlspecialchars($signup_success) ?>
+        </div>
+      <?php elseif (!empty($signup_error)): ?>
+        <div id="fade-message" class="error" style="color: red; background: #f8d7da; padding: 10px; border-radius: 4px; margin-bottom: 10px; text-align:center; transition: opacity 0.8s, transform 0.8s;">
+          <?= htmlspecialchars($signup_error) ?>
+        </div>
+      <?php endif; ?>
+      <form class="w-full flex flex-col gap-4" method="POST" action="" id="signup-form">
         <div>
           <label class="block text-slate-200 font-semibold mb-1">First name</label>
-          <input type="text" placeholder="First name" required class="w-full px-4 py-3 rounded-lg border border-slate-700 bg-[#232f3e] text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all" />
+          <input type="text" name="signup_first_name" placeholder="First name" required class="w-full px-4 py-3 rounded-lg border border-slate-700 bg-[#232f3e] text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all" value="<?= htmlspecialchars($_POST['signup_first_name'] ?? '') ?>" />
         </div>
         <div>
           <label class="block text-slate-200 font-semibold mb-1">Last name</label>
-          <input type="text" placeholder="Last name" required class="w-full px-4 py-3 rounded-lg border border-slate-700 bg-[#232f3e] text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all" />
+          <input type="text" name="signup_last_name" placeholder="Last name" required class="w-full px-4 py-3 rounded-lg border border-slate-700 bg-[#232f3e] text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all" value="<?= htmlspecialchars($_POST['signup_last_name'] ?? '') ?>" />
         </div>
         <div>
           <label class="block text-slate-200 font-semibold mb-1">Email</label>
-          <input type="email" placeholder="Email" required class="w-full px-4 py-3 rounded-lg border border-slate-700 bg-[#232f3e] text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all" />
+          <input type="email" name="signup_email" placeholder="Email" required class="w-full px-4 py-3 rounded-lg border border-slate-700 bg-[#232f3e] text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all" value="<?= htmlspecialchars($_POST['signup_email'] ?? '') ?>" />
         </div>
         <div>
           <label class="block text-slate-200 font-semibold mb-1">Password</label>
-          <input type="password" placeholder="Password" required class="w-full px-4 py-3 rounded-lg border border-slate-700 bg-[#232f3e] text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all" />
+          <input type="password" name="signup_password" placeholder="Password" required class="w-full px-4 py-3 rounded-lg border border-slate-700 bg-[#232f3e] text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all" />
         </div>
         <div>
           <label class="block text-slate-200 font-semibold mb-1">Confirm Password</label>
-          <input type="password" placeholder="Confirm password" required class="w-full px-4 py-3 rounded-lg border border-slate-700 bg-[#232f3e] text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all" />
+          <input type="password" name="signup_confirm_password" placeholder="Confirm password" required class="w-full px-4 py-3 rounded-lg border border-slate-700 bg-[#232f3e] text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all" />
         </div>
-        <button type="submit" class="mt-2 px-8 py-3 rounded-lg font-bold text-lg shadow transition-all sign-in-btn">Sign up</button>
+        <button type="submit" name="signup" class="mt-2 px-8 py-3 rounded-lg font-bold text-lg shadow transition-all sign-in-btn">Sign up</button>
       </form>
       <p class="text-slate-400 text-sm mt-4">By creating an account, you agree to our <a href="#" class="text-blue-400 hover:underline">Terms of Service</a></p>
       <div class="flex items-center my-6 w-full">
@@ -185,6 +269,20 @@
         </button>
       </div>
       <button id="close-create-account" class="mt-6 text-slate-400 hover:text-white text-sm">Cancel</button>
+    </div>
+  </div>
+  <!-- Notification (side, bottom right) -->
+  <div id="side-notification" style="display:none; position:fixed; bottom:40px; right:40px; min-width:260px; max-width:340px; z-index:9999; border-radius:10px; box-shadow:0 2px 12px rgba(0,0,0,0.12); padding:16px 24px 32px 20px; font-size:1rem; font-weight:500; opacity:0; transition:opacity 0.5s, transform 0.5s; background:#fff; color:#222;">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:4px;">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span id="side-notification-icon" style="font-size:1.3em;">🔔</span>
+        <span style="font-size:0.98em; font-weight:600; opacity:0.7;">Sign up status</span>
+      </div>
+      <button id="side-notification-close" style="background:none; border:none; font-size:1.1em; color:#888; cursor:pointer; margin-left:8px;">&times;</button>
+    </div>
+    <span id="side-notification-text" style="display:block; font-size:0.98em; margin-bottom:2px;"></span>
+    <div id="side-notification-timer" style="position:absolute; left:0; bottom:0; height:6px; width:100%; background:rgba(0,0,0,0.07); border-radius:0 0 10px 10px; overflow:hidden;">
+      <div id="side-notification-timer-bar" style="height:100%; width:0; background:#888; transition:width 7s linear;"></div>
     </div>
   </div>
   <script>
@@ -249,6 +347,84 @@
             hideModal();
           }
         });
+      }
+    });
+    // Fade out sign-up message and show persistent message at top
+    window.addEventListener('DOMContentLoaded', function() {
+      var fadeMsg = document.getElementById('fade-message');
+      if (fadeMsg) {
+        setTimeout(function() {
+          fadeMsg.style.opacity = '0';
+          fadeMsg.style.transform = 'translateY(30px)';
+          setTimeout(function() {
+            fadeMsg.style.display = 'none';
+            // Optionally scroll to top to show the persistent message
+            var finalMsg = document.getElementById('final-message-container');
+            if (finalMsg) {
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+          }, 900);
+        }, 1800);
+      }
+    });
+    // Show side notification and clear form fields after sign-up
+    window.addEventListener('DOMContentLoaded', function() {
+      var notif = document.getElementById('side-notification');
+      var notifText = document.getElementById('side-notification-text');
+      var notifIcon = document.getElementById('side-notification-icon');
+      var notifClose = document.getElementById('side-notification-close');
+      var notifTimerBar = document.getElementById('side-notification-timer-bar');
+      var signupForm = document.getElementById('signup-form');
+      var signupSuccess = <?php echo json_encode($signup_success); ?>;
+      var signupError = <?php echo json_encode($signup_error); ?>;
+      var clearForm = <?php echo json_encode($clear_form); ?>;
+      var isSignupAttempt = <?php echo $isSignupAttempt ? 'true' : 'false'; ?>;
+      var notifTimeout = null;
+
+      // Only show notification if there was a sign-up POST attempt AND there is a non-empty message
+      if (isSignupAttempt && ((signupSuccess && signupSuccess.length > 0) || (signupError && signupError.length > 0)) && notif && notifText && (typeof clearForm !== 'undefined')) {
+        notifText.textContent = signupSuccess || signupError;
+        notif.style.background = signupSuccess ? '#d4edda' : '#f8d7da';
+        notif.style.color = signupSuccess ? 'green' : 'red';
+        if (notifIcon) notifIcon.textContent = signupSuccess ? '✅' : '❌';
+        notif.style.opacity = '1';
+        notif.style.display = 'block';
+        notif.style.transform = 'translateY(0)';
+        if (notifTimerBar) {
+          notifTimerBar.style.background = signupSuccess ? '#4bb543' : '#e3342f';
+          notifTimerBar.style.width = '0';
+          setTimeout(function() {
+            notifTimerBar.style.width = '100%';
+          }, 50);
+        }
+        notifTimeout = setTimeout(function() {
+          notif.style.opacity = '0';
+          notif.style.transform = 'translateY(30px)';
+          setTimeout(function() {
+            notif.style.display = 'none';
+            if (notifTimerBar) notifTimerBar.style.width = '0';
+          }, 600);
+        }, 7000);
+      }
+      // Close button handler
+      if (notifClose) {
+        notifClose.onclick = function() {
+          notif.style.opacity = '0';
+          notif.style.transform = 'translateY(30px)';
+          setTimeout(function() {
+            notif.style.display = 'none';
+            if (notifTimerBar) notifTimerBar.style.width = '0';
+          }, 600);
+          if (notifTimeout) clearTimeout(notifTimeout);
+        };
+      }
+      // Clear form fields after submit
+      if (isSignupAttempt && clearForm && signupForm) {
+        setTimeout(function() {
+          signupForm.reset();
+          var inputs = signupForm.querySelectorAll('input');
+          inputs.forEach(function(input) { input.value = ''; });
+        }, 100);
       }
     });
   </script>
