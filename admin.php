@@ -5,12 +5,24 @@ session_start();
 require_once __DIR__ . '/database_connection/connection.php';
 $user_count = 0;
 $user_name = isset($_SESSION['user_name']) ? $_SESSION['user_name'] : 'Admin';
+// Get user count per agency
+$agency_counts = [];
 try {
-    $stmt = $pdo->query('SELECT COUNT(DISTINCT id) as total FROM users');
-    $row = $stmt->fetch();
-    $user_count = $row ? (int)$row['total'] : 0;
+    $stmt1 = $pdo->query('SELECT COUNT(*) as total FROM users');
+    $row1 = $stmt1->fetch();
+    $stmt2 = $pdo->query("SELECT COUNT(*) as total FROM agency_admins WHERE role = 'adminagency'");
+    $row2 = $stmt2->fetch();
+    $user_count = ($row1 ? (int)$row1['total'] : 0) + ($row2 ? (int)$row2['total'] : 0);
 } catch (Exception $e) {
     $user_count = 0;
+}
+try {
+    $stmt = $pdo->query('SELECT agency_id, COUNT(user_id) as user_count FROM agency_users GROUP BY agency_id');
+    while ($row = $stmt->fetch()) {
+        $agency_counts[] = $row;
+    }
+} catch (Exception $e) {
+    $agency_counts = [];
 }
 if (isset($_POST['logout'])) {
     session_unset();
@@ -342,7 +354,7 @@ if (isset($_POST['logout'])) {
                         onmouseover="this.style.background='#2d466d'" onmouseout="this.style.background='#3a5a8c'">
                         <span style="font-size:1.2em;">+</span> Add Agency
                     </button>
-                    <button style="background:#14213d;color:#fff;border:none;border-radius:10px;padding:12px 22px;font-size:1.08em;font-weight:700;box-shadow:0 2px 8px #14213d22;display:flex;align-items:center;gap:8px;cursor:pointer;transition:background 0.18s;outline:none;"
+                    <button id="add-internal-btn" style="background:#14213d;color:#fff;border:none;border-radius:10px;padding:12px 22px;font-size:1.08em;font-weight:700;box-shadow:0 2px 8px #14213d22;display:flex;align-items:center;gap:8px;cursor:pointer;transition:background 0.18s;outline:none;"
                         onmouseover="this.style.background='#22325a'" onmouseout="this.style.background='#14213d'">
                         <span style="font-size:1.2em;">+</span> Add Internal
                     </button>
@@ -360,7 +372,7 @@ if (isset($_POST['logout'])) {
                             <span style="display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;background:#0a1a2f;border-radius:12px;">
                                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 8-4 8-4s8 0 8 4"/></svg>
                             </span>
-                            Edit Profile
+                            Edit Profiles
                         </a>
                     </div>
                     <!-- Search Bar -->
@@ -397,6 +409,29 @@ if (isset($_POST['logout'])) {
                 <strong>Task Assignment</strong>
                 <span style="font-size:0.97em; color:#444;">Automate team task assignments</span>
             </div>
+        </div>
+        <!-- Agencies User Count Table -->
+        <div style="margin-top:32px;max-width:420px;background:#fff;border-radius:14px;box-shadow:0 2px 12px #178fff11;padding:18px 24px;max-height:340px;overflow-y:auto;">
+          <h3 style="font-size:1.18em;font-weight:800;color:#14213d;margin-bottom:10px;">Agencies & User Count</h3>
+          <table style="width:100%;border-collapse:collapse;">
+            <thead>
+              <tr style="color:#888;font-size:0.98em;text-align:left;">
+                <th style="padding:6px 0;">Agency ID</th>
+                <th style="padding:6px 0;">User Count</th>
+              </tr>
+            </thead>
+            <tbody>
+              <?php foreach ($agency_counts as $agency): ?>
+                <tr style="border-top:1px solid #e3e8f0;">
+                  <td style="padding:7px 0;font-weight:700;">#<?= htmlspecialchars($agency['agency_id']) ?></td>
+                  <td style="padding:7px 0;"><?= htmlspecialchars($agency['user_count']) ?></td>
+                </tr>
+              <?php endforeach; ?>
+              <?php if (empty($agency_counts)): ?>
+                <tr><td style="padding:7px 0;color:#888;">No agencies found.</td><td style="padding:7px 0;color:#888;">N/A</td></tr>
+              <?php endif; ?>
+            </tbody>
+          </table>
         </div>
     </main>
 </div>
@@ -437,8 +472,20 @@ if (isset($_POST['logout'])) {
     </div>
   </div>
 </div>
-<!-- Hidden logout form for modal submission -->
 <form id="logout-form" method="POST" style="display:none;"><input type="hidden" name="logout" value="1" /></form>
+<!-- Add Internal Confirmation Modal -->
+<div id="internal-modal-bg" style="display:none;position:fixed;z-index:3000;top:0;left:0;width:100vw;height:100vh;background:rgba(10,20,40,0.45);align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:16px;box-shadow:0 8px 32px #00132333;padding:32px 32px 24px 32px;min-width:320px;max-width:95vw;width:350px;display:flex;flex-direction:column;gap:18px;align-items:stretch;">
+    <h2 style="font-size:1.2em;font-weight:800;margin-bottom:1px;color:#14213d;">Enter Master Password</h2>
+    <div style="font-size:0.92em;color:#888;margin-bottom:1px;">The Master Password is needed to add another Internal User to the System</div>
+    <input id="internal-master-pass" type="password" placeholder="Master password" style="padding:3px 5px;border-radius:8px;border:1.5px solid #e3e8f0;font-size:1.08em;outline:none;" />
+    <div id="internal-pass-error" style="color:#e3342f;font-weight:700;display:none;">Incorrect password. Try again.</div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:10px;">
+      <button id="cancel-internal" type="button" style="background:#e3e8f0;color:#14213d;border:none;border-radius:8px;padding:8px 18px;font-weight:700;cursor:pointer;">Cancel</button>
+      <button id="confirm-internal" type="button" style="background:#14213d;color:#fff;border:none;border-radius:8px;padding:8px 18px;font-weight:800;cursor:pointer;">Confirm</button>
+    </div>
+  </div>
+</div>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
   var editProfileLink = document.getElementById('edit-profile-link');
@@ -499,6 +546,43 @@ document.addEventListener('DOMContentLoaded', function() {
       row.style.transform = 'none';
     });
   });
+  var addInternalBtn = document.getElementById('add-internal-btn');
+  var internalModalBg = document.getElementById('internal-modal-bg');
+  var cancelInternal = document.getElementById('cancel-internal');
+  var confirmInternal = document.getElementById('confirm-internal');
+  var internalPassInput = document.getElementById('internal-master-pass');
+  var internalPassError = document.getElementById('internal-pass-error');
+  if (addInternalBtn && internalModalBg && cancelInternal && confirmInternal && internalPassInput && internalPassError) {
+    addInternalBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      internalModalBg.style.display = 'flex';
+      internalPassInput.value = '';
+      internalPassError.style.display = 'none';
+      internalPassInput.focus();
+    });
+    cancelInternal.addEventListener('click', function() {
+      internalModalBg.style.display = 'none';
+    });
+    internalModalBg.addEventListener('click', function(e) {
+      if (e.target === internalModalBg) {
+        internalModalBg.style.display = 'none';
+      }
+    });
+    confirmInternal.addEventListener('click', function() {
+      if (internalPassInput.value === 'admin') {
+        internalModalBg.style.display = 'none';
+        // Proceed to add internal user (add your logic here)
+        alert('Access granted. Proceed to add internal user.');
+      } else {
+        internalPassError.style.display = 'block';
+      }
+    });
+    internalPassInput.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') {
+        confirmInternal.click();
+      }
+    });
+  }
 });
 </script>
 </body>
