@@ -25,11 +25,17 @@ if (isset($_POST['logout'])) {
     <title>Admin Panel</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
+        html, body {
+            height: 100vh;
+            overflow-y: hidden;
+        }
         body {
             font-family: 'Inter', Arial, sans-serif;
             background: #f7f9fb;
             margin: 0;
             padding: 0;
+            padding-bottom: 0 !important;
+            overflow-x: hidden;
         }
         .admin-layout {
             display: flex;
@@ -93,9 +99,11 @@ if (isset($_POST['logout'])) {
         }
         .main-content {
             flex: 1;
-            padding: 18px 32px 18px 32px;
+            padding: 18px 32px 0 32px;
             background: #f7f9fb;
             min-width: 0;
+            height: 100vh;
+            overflow-y: auto;
         }
         .topbar {
             display: flex;
@@ -339,26 +347,28 @@ if (isset($_POST['logout'])) {
                         <span style="font-size:1.2em;">+</span> Add Internal
                     </button>
                 </div>
-                <div style="background:#fff;border-radius:16px;box-shadow:0 2px 12px #178fff11;padding:0;min-width:270px;width:100%;">
-                    <a href="#" style="display:flex;align-items:center;gap:16px;padding:18px 22px 18px 18px;text-decoration:none;color:#222;font-weight:700;font-size:1.08em;">
-                        <span style="display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;background:#0a1a2f;border-radius:12px;">
-                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M7 8h10M7 12h10M7 16h6"/></svg>
-                        </span>
-                        Manage Automations
-                    </a>
-                    <hr style="margin:0 18px;border:none;border-top:1px solid #e3e8f0;" />
-                    <a href="#" id="edit-profile-link" style="display:flex;align-items:center;gap:16px;padding:18px 22px 18px 18px;text-decoration:none;color:#222;font-weight:700;font-size:1.08em;">
-                        <span style="display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;background:#0a1a2f;border-radius:12px;">
-                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 8-4 8-4s8 0 8 4"/></svg>
-                        </span>
-                        Edit Profile
-                    </a>
+                <div style="background:#fff;border-radius:16px;box-shadow:0 2px 12px #178fff11;padding:0;min-width:270px;width:100%;display:flex;flex-direction:column;">
+                    <div id="card-scroll-list" style="max-height:180px;overflow-y:auto;display:flex;flex-direction:column;gap:0 0 8px 0;padding-bottom:0;">
+                        <a href="#" class="card-row-hover" style="display:flex;align-items:center;gap:16px;padding:18px 22px 18px 18px;text-decoration:none;color:#222;font-weight:700;font-size:1.08em;transition:box-shadow 0.18s, transform 0.18s;border-radius:12px;margin:6px 10px 0 10px;">
+                            <span style="display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;background:#0a1a2f;border-radius:12px;">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M7 8h10M7 12h10M7 16h6"/></svg>
+                            </span>
+                            Manage Automations
+                        </a>
+                        <hr style="margin:0 18px;border:none;border-top:1px solid #e3e8f0;" />
+                        <a href="#" id="edit-profile-link" class="card-row-hover" style="display:flex;align-items:center;gap:16px;padding:18px 22px 18px 18px;text-decoration:none;color:#222;font-weight:700;font-size:1.08em;transition:box-shadow 0.18s, transform 0.18s;border-radius:12px;margin:6px 10px 0 10px;">
+                            <span style="display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;background:#0a1a2f;border-radius:12px;">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 8-4 8-4s8 0 8 4"/></svg>
+                            </span>
+                            Edit Profile
+                        </a>
+                    </div>
                     <!-- Search Bar -->
                     <div style="padding:18px 22px 18px 18px;">
-                      <div style="display:flex;align-items:center;background:#0a1a2f;border-radius:12px;padding:8px 14px;gap:10px;">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#7ecbff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                        <input type="text" placeholder="Search..." style="background:transparent;border:none;outline:none;color:#fff;font-size:1.08em;width:100%;" />
-                      </div>
+                        <div id="search-bar-container" style="display:flex;align-items:center;background:#0a1a2f;border-radius:12px;padding:8px 14px;gap:10px;transition:background 0.18s, border 0.18s;border:1.5px solid transparent;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#7ecbff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                            <input id="search-bar-input" type="text" placeholder="Search..." style="background:transparent;border:none;outline:none;color:#fff;font-size:1.08em;width:100%;" />
+                        </div>
                     </div>
                 </div>
             </div>
@@ -456,6 +466,39 @@ document.addEventListener('DOMContentLoaded', function() {
       if (modalBg) modalBg.style.display = 'flex';
     });
   }
+  var searchBar = document.getElementById('search-bar-container');
+  var searchInput = document.getElementById('search-bar-input');
+  if (searchBar && searchInput) {
+    searchBar.addEventListener('mouseover', function() {
+      searchBar.style.background = '#183a5a';
+      searchBar.style.border = '2px solid #178fff';
+    });
+    searchBar.addEventListener('mouseout', function() {
+      if (document.activeElement !== searchInput) {
+        searchBar.style.background = '#0a1a2f';
+        searchBar.style.border = '1.5px solid transparent';
+      }
+    });
+    searchInput.addEventListener('focus', function() {
+      searchBar.style.background = '#183a5a';
+      searchBar.style.border = '2px solid #178fff';
+    });
+    searchInput.addEventListener('blur', function() {
+      searchBar.style.background = '#0a1a2f';
+      searchBar.style.border = '1.5px solid transparent';
+    });
+  }
+  var cardRows = document.querySelectorAll('.card-row-hover');
+  cardRows.forEach(function(row) {
+    row.addEventListener('mouseover', function() {
+      row.style.boxShadow = '0 4px 18px #178fff22';
+      row.style.transform = 'translateY(-2px)';
+    });
+    row.addEventListener('mouseout', function() {
+      row.style.boxShadow = 'none';
+      row.style.transform = 'none';
+    });
+  });
 });
 </script>
 </body>
