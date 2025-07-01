@@ -7,6 +7,8 @@ $user_count = 0;
 $user_name = isset($_SESSION['user_name']) ? $_SESSION['user_name'] : 'Admin';
 // Get user count per agency
 $agency_counts = [];
+// Fetch agency names for the user modal dropdown
+$agency_options = [];
 try {
     $stmt1 = $pdo->query('SELECT COUNT(*) as total FROM users');
     $row1 = $stmt1->fetch();
@@ -17,12 +19,20 @@ try {
     $user_count = 0;
 }
 try {
-    $stmt = $pdo->query('SELECT agency_id, COUNT(user_id) as user_count FROM agency_users GROUP BY agency_id');
+    $stmt = $pdo->query('SELECT aa.agency_name, COUNT(au.user_id) as user_count FROM agency_admins aa LEFT JOIN agency_users au ON aa.agency_id = au.agency_id WHERE aa.role = "adminagency" GROUP BY aa.agency_id, aa.agency_name');
     while ($row = $stmt->fetch()) {
         $agency_counts[] = $row;
     }
 } catch (Exception $e) {
     $agency_counts = [];
+}
+try {
+    $stmt = $pdo->query('SELECT agency_id, agency_name FROM agency_admins WHERE role = "adminagency"');
+    while ($row = $stmt->fetch()) {
+        $agency_options[] = $row;
+    }
+} catch (Exception $e) {
+    $agency_options = [];
 }
 if (isset($_POST['logout'])) {
     session_unset();
@@ -231,6 +241,38 @@ if (isset($_POST['logout'])) {
         .top-section {
             display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px;gap:32px;margin-top:-12px;
         }
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(40px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fadeOut {
+            from { opacity: 1; transform: translateY(0); }
+            to { opacity: 0; transform: translateY(-40px); }
+        }
+        #add-agency-modal-bg[fade-up] > div {
+            animation: fadeUp 0.45s cubic-bezier(.4,1.4,.6,1) forwards;
+        }
+        #add-agency-modal-bg[fade-out] > div {
+            animation: fadeOut 0.45s cubic-bezier(.4,1.4,.6,1) forwards;
+        }
+        #add-user-modal-bg[fade-up] > div {
+            animation: fadeUp 0.45s cubic-bezier(.4,1.4,.6,1) forwards;
+        }
+        #add-user-modal-bg[fade-out] > div {
+            animation: fadeOut 0.45s cubic-bezier(.4,1.4,.6,1) forwards;
+        }
+        #internal-modal-bg[fade-up] > div {
+            animation: fadeUp 0.45s cubic-bezier(.4,1.4,.6,1) forwards;
+        }
+        #internal-modal-bg[fade-out] > div {
+            animation: fadeOut 0.45s cubic-bezier(.4,1.4,.6,1) forwards;
+        }
+        #add-internal-modal-bg[fade-up] > div {
+            animation: fadeUp 0.45s cubic-bezier(.4,1.4,.6,1) forwards;
+        }
+        #add-internal-modal-bg[fade-out] > div {
+            animation: fadeOut 0.45s cubic-bezier(.4,1.4,.6,1) forwards;
+        }
     </style>
 </head>
 <body>
@@ -346,11 +388,11 @@ if (isset($_POST['logout'])) {
             </div>
             <div style="display:flex;flex-direction:column;align-items:flex-end;gap:18px;min-width:320px;">
                 <div style="display:flex;gap:12px;margin-bottom:8px;">
-                    <button style="background:#eaf2fa;color:#1560d4;border:none;border-radius:10px;padding:12px 22px;font-size:1.08em;font-weight:700;box-shadow:0 2px 8px #178fff11;display:flex;align-items:center;gap:8px;cursor:pointer;transition:background 0.18s;outline:none;"
+                    <button id="add-user-btn" style="background:#eaf2fa;color:#1560d4;border:none;border-radius:10px;padding:12px 22px;font-size:1.08em;font-weight:700;box-shadow:0 2px 8px #178fff11;display:flex;align-items:center;gap:8px;cursor:pointer;transition:background 0.18s;outline:none;"
                         onmouseover="this.style.background='#d6e6f7'" onmouseout="this.style.background='#eaf2fa'">
                         <span style="font-size:1.2em;">+</span> Add User
                     </button>
-                    <button style="background:#3a5a8c;color:#fff;border:none;border-radius:10px;padding:12px 22px;font-size:1.08em;font-weight:700;box-shadow:0 2px 8px #3a5a8c22;display:flex;align-items:center;gap:8px;cursor:pointer;transition:background 0.18s;outline:none;"
+                    <button id="add-agency-btn" style="background:#3a5a8c;color:#fff;border:none;border-radius:10px;padding:12px 22px;font-size:1.08em;font-weight:700;box-shadow:0 2px 8px #3a5a8c22;display:flex;align-items:center;gap:8px;cursor:pointer;transition:background 0.18s;outline:none;"
                         onmouseover="this.style.background='#2d466d'" onmouseout="this.style.background='#3a5a8c'">
                         <span style="font-size:1.2em;">+</span> Add Agency
                     </button>
@@ -413,18 +455,22 @@ if (isset($_POST['logout'])) {
         <!-- Agencies User Count Table -->
         <div style="margin-top:32px;max-width:420px;background:#fff;border-radius:14px;box-shadow:0 2px 12px #178fff11;padding:18px 24px;max-height:340px;overflow-y:auto;">
           <h3 style="font-size:1.18em;font-weight:800;color:#14213d;margin-bottom:10px;">Agencies & User Count</h3>
-          <table style="width:100%;border-collapse:collapse;">
+          <table id="agencies-user-count-table" style="width:100%;border-collapse:collapse;">
             <thead>
               <tr style="color:#888;font-size:0.98em;text-align:left;">
-                <th style="padding:6px 0;">Agency ID</th>
+                <th style="padding:6px 0;">Agency Name</th>
                 <th style="padding:6px 0;">User Count</th>
               </tr>
             </thead>
             <tbody>
               <?php foreach ($agency_counts as $agency): ?>
                 <tr style="border-top:1px solid #e3e8f0;">
-                  <td style="padding:7px 0;font-weight:700;">#<?= htmlspecialchars($agency['agency_id']) ?></td>
-                  <td style="padding:7px 0;"><?= htmlspecialchars($agency['user_count']) ?></td>
+                  <td style="padding:7px 0;font-weight:700;">
+                    <?= !empty($agency['agency_name']) ? htmlspecialchars($agency['agency_name']) : '' ?>
+                  </td>
+                  <td style="padding:7px 0;font-weight:700;">
+                    <?= isset($agency['user_count']) ? htmlspecialchars($agency['user_count']) : '0' ?>
+                  </td>
                 </tr>
               <?php endforeach; ?>
               <?php if (empty($agency_counts)): ?>
@@ -473,21 +519,118 @@ if (isset($_POST['logout'])) {
   </div>
 </div>
 <form id="logout-form" method="POST" style="display:none;"><input type="hidden" name="logout" value="1" /></form>
-<!-- Add Internal Confirmation Modal -->
-<div id="internal-modal-bg" style="display:none;position:fixed;z-index:3000;top:0;left:0;width:100vw;height:100vh;background:rgba(10,20,40,0.45);align-items:center;justify-content:center;">
-  <div style="background:#fff;border-radius:16px;box-shadow:0 8px 32px #00132333;padding:32px 32px 24px 32px;min-width:320px;max-width:95vw;width:350px;display:flex;flex-direction:column;gap:18px;align-items:stretch;">
-    <h2 style="font-size:1.2em;font-weight:800;margin-bottom:1px;color:#14213d;">Enter Master Password</h2>
-    <div style="font-size:0.92em;color:#888;margin-bottom:1px;">The Master Password is needed to add another Internal User to the System</div>
-    <input id="internal-master-pass" type="password" placeholder="Master password" style="padding:3px 5px;border-radius:8px;border:1.5px solid #e3e8f0;font-size:1.08em;outline:none;" />
-    <div id="internal-pass-error" style="color:#e3342f;font-weight:700;display:none;">Incorrect password. Try again.</div>
+<!-- Internal Password Confirmation Modal -->
+<div id="internal-modal-bg" style="display:none;position:fixed;z-index:3000;top:0;left:0;width:100vw;height:100vh;background:rgba(10,20,40,0.55);align-items:center;justify-content:center;">
+  <div style="background:#0a1020;border-radius:18px;box-shadow:0 8px 32px #00132366;padding:32px 32px 24px 32px;min-width:320px;max-width:95vw;width:370px;display:flex;flex-direction:column;gap:18px;align-items:stretch;">
+    <h2 style="font-size:1.4em;font-weight:800;margin-bottom:2px;color:#fff;text-align:center;">Confirm Internal Password</h2>
+    <div style="font-size:1.08em;color:#b6c6d7;text-align:center;margin-bottom:10px;">Enter your master password to add an internal user.</div>
+    <input id="internal-master-pass" type="password" placeholder="Master Password" style="margin-top:4px;padding:10px 14px;box-sizing:border-box;border-radius:8px;border:1px solid #fff;background:#fff;color:#22325a;font-weight:700;width:100%;" />
+    <div id="internal-pass-error" style="display:none;color:#e3342f;background:#f8d7da;padding:10px;border-radius:6px;text-align:center;font-weight:700;margin-top:8px;">Incorrect password. Please try again.</div>
     <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:10px;">
-      <button id="cancel-internal" type="button" style="background:#e3e8f0;color:#14213d;border:none;border-radius:8px;padding:8px 18px;font-weight:700;cursor:pointer;">Cancel</button>
-      <button id="confirm-internal" type="button" style="background:#14213d;color:#fff;border:none;border-radius:8px;padding:8px 18px;font-weight:800;cursor:pointer;">Confirm</button>
+      <button type="button" id="cancel-internal" style="background:none;color:#b6c6d7;font-size:1em;border:none;cursor:pointer;">Cancel</button>
+      <button type="button" id="confirm-internal" style="background:#22325a;color:#fff;font-weight:700;font-size:1.08em;padding:10px 24px;border:none;border-radius:10px;cursor:pointer;">Confirm</button>
     </div>
+  </div>
+</div>
+<!-- Add Internal Modal (after password confirmation) -->
+<div id="add-internal-modal-bg" style="display:none;position:fixed;z-index:3000;top:0;left:0;width:100vw;height:100vh;background:rgba(10,20,40,0.55);align-items:center;justify-content:center;">
+  <div style="background:#0a1020;border-radius:18px;box-shadow:0 8px 32px #00132366;padding:32px 32px 24px 32px;min-width:320px;max-width:95vw;width:370px;display:flex;flex-direction:column;gap:18px;align-items:stretch;">
+    <h2 style="font-size:2em;font-weight:800;margin-bottom:2px;color:#fff;text-align:center;">Add Internal User</h2>
+    <div style="font-size:1.08em;color:#b6c6d7;text-align:center;margin-bottom:10px;">Create a new Internal User</div>
+    <form id="add-internal-form" style="display:flex;flex-direction:column;gap:14px;">
+      <div id="add-internal-success" style="display:none;color:#4bb543;background:#d4edda;padding:10px;border-radius:6px;text-align:center;font-weight:700;"></div>
+      <div id="add-internal-error" style="display:none;color:#e3342f;background:#f8d7da;padding:10px;border-radius:6px;text-align:center;font-weight:700;"></div>
+      <label style="font-weight:600;color:#fff;">Name
+        <input type="text" name="name" placeholder="Name" style="margin-top:4px;padding:10px 14px;box-sizing:border-box;border-radius:8px;border:1px solid #fff;background:#fff;color:#22325a;font-weight:700;width:100%;" />
+      </label>
+      <label style="font-weight:600;color:#fff;">Password
+        <input type="password" name="password" placeholder="Password" style="margin-top:4px;padding:10px 14px;box-sizing:border-box;border-radius:8px;border:1px solid #fff;background:#fff;color:#22325a;font-weight:700;width:100%;" />
+      </label>
+      <button type="submit" id="create-internal-btn" style="margin-top:8px;background:#0a1627;color:#fff;font-weight:700;font-size:1.08em;padding:12px 0 12px 0;border:none;border-radius:12px;cursor:pointer;transition:background 0.18s, color 0.18s, box-shadow 0.18s;box-shadow:0 2px 8px #22325a55;display:flex;align-items:center;justify-content:center;gap:8px;">
+        <span style="font-size:1.2em;font-weight:900;">+</span> Create account
+      </button>
+      <button type="button" id="cancel-add-internal" style="margin-top:2px;background:none;color:#b6c6d7;font-size:1em;border:none;cursor:pointer;">Cancel</button>
+    </form>
+  </div>
+</div>
+<!-- Add Agency Modal -->
+<div id="add-agency-modal-bg" style="display:none;position:fixed;z-index:3000;top:0;left:0;width:100vw;height:100vh;background:rgba(10,20,40,0.45);display:flex;align-items:center;justify-content:center;">
+  <div style="background:#0a1a2f;border-radius:18px;box-shadow:0 8px 32px #00132333;padding:32px 18px 24px 18px;min-width:320px;max-width:95vw;width:370px;display:flex;flex-direction:column;gap:18px;align-items:stretch;justify-content:center;">
+    <h2 style="font-size:2em;font-weight:800;margin-bottom:2px;color:#fff;text-align:center;">Create an Agency's Account</h2>
+    <div style="font-size:1.08em;color:#b6c6d7;text-align:center;margin-bottom:10px;">Add a New AutoPilots Agency Account</div>
+    <form id="add-agency-form" style="display:flex;flex-direction:column;gap:14px;">
+      <div id="add-agency-success" style="display:none;color:#4bb543;background:#d4edda;padding:10px;border-radius:6px;text-align:center;font-weight:700;"></div>
+      <div id="add-agency-error" style="display:none;color:#e3342f;background:#f8d7da;padding:10px;border-radius:6px;text-align:center;font-weight:700;"></div>
+      <label style="font-weight:600;color:#fff;">Agency Name
+        <input type="text" name="agency_name" placeholder="Agency name" style="margin-top:4px;padding:10px 14px;box-sizing:border-box;border-radius:8px;border:1px solid #22325a;background:#14213d;color:#fff;width:100%;" />
+      </label>
+      <label style="font-weight:600;color:#fff;">First Name
+        <input type="text" name="first_name" placeholder="First name" style="margin-top:4px;padding:10px 14px;box-sizing:border-box;border-radius:8px;border:1px solid #22325a;background:#14213d;color:#fff;width:100%;" />
+      </label>
+      <label style="font-weight:600;color:#fff;">Last Name
+        <input type="text" name="last_name" placeholder="Last name" style="margin-top:4px;padding:10px 14px;box-sizing:border-box;border-radius:8px;border:1px solid #22325a;background:#14213d;color:#fff;width:100%;" />
+      </label>
+      <label style="font-weight:600;color:#fff;">Email
+        <input type="email" name="email" placeholder="Email" style="margin-top:4px;padding:10px 14px;box-sizing:border-box;border-radius:8px;border:1px solid #22325a;background:#14213d;color:#fff;width:100%;" />
+      </label>
+      <label style="font-weight:600;color:#fff;">Password
+        <input type="password" name="password" placeholder="Password" value="Password" style="margin-top:4px;padding:10px 14px;box-sizing:border-box;border-radius:8px;border:1px solid #22325a;background:#14213d;color:#fff;width:100%;" />
+      </label>
+      <div style="font-size:0.85em;color:#8a97a8;text-align:left;margin-top:-8px;margin-bottom:8px;padding-left:4px;padding-right:4px;">
+        Default password is <b>"Password"</b>. This can be reset and changed by the agency admin later.
+      </div>
+      <button type="submit" id="create-agency-btn" style="margin-top:8px;background:#14213d;color:#fff;font-weight:700;font-size:1.08em;padding:12px 0 12px 0;border:none;border-radius:12px;cursor:pointer;transition:background 0.18s, color 0.18s;box-shadow:0 2px 8px #3a5a8c22;display:flex;align-items:center;justify-content:center;gap:8px;">
+        <span style="font-size:1.2em;font-weight:900;">+</span> Create account
+      </button>
+      <button type="button" id="cancel-add-agency" style="margin-top:2px;background:none;color:#b6c6d7;font-size:1em;border:none;cursor:pointer;">Cancel</button>
+    </form>
+  </div>
+</div>
+<!-- Add User Modal -->
+<div id="add-user-modal-bg" style="display:none;position:fixed;z-index:3000;top:0;left:0;width:100vw;height:100vh;background:rgba(10,20,40,0.45);align-items:center;justify-content:center;">
+  <div style="background:#22325a;border-radius:18px;box-shadow:0 8px 32px #00132333;padding:32px 32px 24px 32px;min-width:320px;max-width:95vw;width:370px;display:flex;flex-direction:column;gap:18px;align-items:stretch;">
+    <h2 style="font-size:2em;font-weight:800;margin-bottom:2px;color:#fff;text-align:center;">Create a User Account</h2>
+    <div style="font-size:1.08em;color:#fff;text-align:center;margin-bottom:10px;">Add a New AutoPilot User Account </div>
+    <form id="add-user-form" style="display:flex;flex-direction:column;gap:14px;">
+      <div id="add-user-success" style="display:none;color:#4bb543;background:#d4edda;padding:10px;border-radius:6px;text-align:center;font-weight:700;"></div>
+      <div id="add-user-error" style="display:none;color:#e3342f;background:#f8d7da;padding:10px;border-radius:6px;text-align:center;font-weight:700;"></div>
+      <label style="font-weight:600;color:#fff;">First Name
+        <input type="text" name="first_name" placeholder="First name" style="margin-top:4px;padding:10px 14px;box-sizing:border-box;border-radius:8px;border:1px solid #fff;background:#fff;color:#22325a;font-weight:700;width:100%;" />
+      </label>
+      <label style="font-weight:600;color:#fff;">Last Name
+        <input type="text" name="last_name" placeholder="Last name" style="margin-top:4px;padding:10px 14px;box-sizing:border-box;border-radius:8px;border:1px solid #fff;background:#fff;color:#22325a;font-weight:700;width:100%;" />
+      </label>
+      <label style="font-weight:600;color:#fff;">Email
+        <input type="email" name="email" placeholder="Email" style="margin-top:4px;padding:10px 14px;box-sizing:border-box;border-radius:8px;border:1px solid #fff;background:#fff;color:#22325a;font-weight:700;width:100%;" />
+      </label>
+      <label style="font-weight:600;color:#fff;">Password
+        <input type="password" name="password" placeholder="Password" value="Password" style="margin-top:4px;padding:10px 14px;box-sizing:border-box;border-radius:8px;border:1px solid #fff;background:#fff;color:#22325a;font-weight:700;width:100%;" />
+      </label>
+      <div style="font-size:0.85em;color:#8a97a8;text-align:left;margin-top:-8px;margin-bottom:8px;padding-left:4px;padding-right:4px;">
+        Default password is <b>"Password"</b>. This can be reset and changed by the agency admin later.
+      </div>
+      <label style="font-weight:600;color:#fff;">Agency
+        <select name="agency_id" style="margin-top:4px;padding:10px 14px;box-sizing:border-box;border-radius:8px;border:1px solid #fff;background:#fff;color:#22325a;font-weight:700;width:100%;">
+          <option value="" style="color:#22325a;background:#fff;font-weight:700;">Select Agency</option>
+          <?php foreach ($agency_options as $agency): ?>
+            <option value="<?= htmlspecialchars($agency['agency_id']) ?>" style="color:#22325a;background:#fff;font-weight:700;"><?= htmlspecialchars($agency['agency_name']) ?></option>
+          <?php endforeach; ?>
+        </select>
+      </label>
+      <button type="submit" id="create-user-btn" style="margin-top:8px;background:#14213d;color:#fff;font-weight:700;font-size:1.08em;padding:12px 0 12px 0;border:none;border-radius:12px;cursor:pointer;transition:background 0.18s, color 0.18s, box-shadow 0.18s;box-shadow:0 2px 8px #3a5a8c22;display:flex;align-items:center;justify-content:center;gap:8px;">
+        <span style="font-size:1.2em;font-weight:900;">+</span> Create account
+      </button>
+      <button type="button" id="cancel-add-user" style="margin-top:2px;background:none;color:#b6c6d7;font-size:1em;border:none;cursor:pointer;">Cancel</button>
+    </form>
   </div>
 </div>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+  // Force hide the modal on page load
+  var addAgencyModalBg = document.getElementById('add-agency-modal-bg');
+  if (addAgencyModalBg) {
+    addAgencyModalBg.style.display = 'none';
+  }
   var editProfileLink = document.getElementById('edit-profile-link');
   var modalBg = document.getElementById('edit-profile-modal-bg');
   var cancelBtn = document.getElementById('cancel-edit-profile');
@@ -548,39 +691,374 @@ document.addEventListener('DOMContentLoaded', function() {
   });
   var addInternalBtn = document.getElementById('add-internal-btn');
   var internalModalBg = document.getElementById('internal-modal-bg');
+  var addInternalModalBg = document.getElementById('add-internal-modal-bg');
   var cancelInternal = document.getElementById('cancel-internal');
+  var cancelAddInternal = document.getElementById('cancel-add-internal');
   var confirmInternal = document.getElementById('confirm-internal');
   var internalPassInput = document.getElementById('internal-master-pass');
   var internalPassError = document.getElementById('internal-pass-error');
-  if (addInternalBtn && internalModalBg && cancelInternal && confirmInternal && internalPassInput && internalPassError) {
+  if (addInternalBtn && internalModalBg && addInternalModalBg && cancelInternal && cancelAddInternal && confirmInternal && internalPassInput && internalPassError) {
     addInternalBtn.addEventListener('click', function(e) {
       e.preventDefault();
       internalModalBg.style.display = 'flex';
+      internalModalBg.removeAttribute('fade-out');
+      internalModalBg.setAttribute('fade-up', '');
       internalPassInput.value = '';
       internalPassError.style.display = 'none';
       internalPassInput.focus();
     });
     cancelInternal.addEventListener('click', function() {
-      internalModalBg.style.display = 'none';
+      internalModalBg.removeAttribute('fade-up');
+      internalModalBg.setAttribute('fade-out', '');
+      setTimeout(function() {
+        internalModalBg.style.display = 'none';
+        internalModalBg.removeAttribute('fade-out');
+      }, 450);
+    });
+    cancelAddInternal.addEventListener('click', function() {
+      addInternalModalBg.removeAttribute('fade-up');
+      addInternalModalBg.setAttribute('fade-out', '');
+      setTimeout(function() {
+        addInternalModalBg.style.display = 'none';
+        addInternalModalBg.removeAttribute('fade-out');
+      }, 450);
     });
     internalModalBg.addEventListener('click', function(e) {
       if (e.target === internalModalBg) {
-        internalModalBg.style.display = 'none';
+        internalModalBg.removeAttribute('fade-up');
+        internalModalBg.setAttribute('fade-out', '');
+        setTimeout(function() {
+          internalModalBg.style.display = 'none';
+          internalModalBg.removeAttribute('fade-out');
+        }, 450);
+      }
+    });
+    addInternalModalBg.addEventListener('click', function(e) {
+      if (e.target === addInternalModalBg) {
+        addInternalModalBg.removeAttribute('fade-up');
+        addInternalModalBg.setAttribute('fade-out', '');
+        setTimeout(function() {
+          addInternalModalBg.style.display = 'none';
+          addInternalModalBg.removeAttribute('fade-out');
+        }, 450);
       }
     });
     confirmInternal.addEventListener('click', function() {
-      if (internalPassInput.value === 'admin') {
-        internalModalBg.style.display = 'none';
-        // Proceed to add internal user (add your logic here)
-        alert('Access granted. Proceed to add internal user.');
-      } else {
+      var masterPass = internalPassInput.value;
+      fetch('verify_internal_password.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: masterPass })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          internalModalBg.removeAttribute('fade-up');
+          internalModalBg.setAttribute('fade-out', '');
+          setTimeout(function() {
+            internalModalBg.style.display = 'none';
+            internalModalBg.removeAttribute('fade-out');
+            addInternalModalBg.style.display = 'flex';
+            addInternalModalBg.removeAttribute('fade-out');
+            addInternalModalBg.setAttribute('fade-up', '');
+          }, 450);
+        } else {
+          internalPassError.style.display = 'block';
+        }
+      })
+      .catch(() => {
         internalPassError.style.display = 'block';
-      }
+      });
     });
     internalPassInput.addEventListener('keydown', function(e) {
       if (e.key === 'Enter') {
         confirmInternal.click();
       }
+    });
+  }
+  var addAgencyBtn = document.getElementById('add-agency-btn');
+  var cancelAddAgency = document.getElementById('cancel-add-agency');
+  var addAgencyForm = document.getElementById('add-agency-form');
+  var addAgencyError = document.getElementById('add-agency-error');
+  var addAgencySuccess = document.getElementById('add-agency-success');
+  if (addAgencyBtn && addAgencyModalBg && cancelAddAgency && addAgencyForm && addAgencyError && addAgencySuccess) {
+    addAgencyBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      console.log('Add Agency button clicked, opening modal');
+      addAgencyModalBg.style.display = 'flex';
+      addAgencyModalBg.removeAttribute('fade-out');
+      addAgencyModalBg.setAttribute('fade-up', '');
+      addAgencyForm.reset();
+      addAgencyError.style.display = 'none';
+      addAgencySuccess.style.display = 'none';
+    });
+    cancelAddAgency.addEventListener('click', function() {
+      addAgencyModalBg.removeAttribute('fade-up');
+      addAgencyModalBg.setAttribute('fade-out', '');
+      setTimeout(function() {
+        addAgencyModalBg.style.display = 'none';
+        addAgencyModalBg.removeAttribute('fade-out');
+      }, 450);
+    });
+    addAgencyModalBg.addEventListener('click', function(e) {
+      if (e.target === addAgencyModalBg) {
+        addAgencyModalBg.removeAttribute('fade-up');
+        addAgencyModalBg.setAttribute('fade-out', '');
+        setTimeout(function() {
+          addAgencyModalBg.style.display = 'none';
+          addAgencyModalBg.removeAttribute('fade-out');
+        }, 450);
+      }
+    });
+    addAgencyForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+      addAgencyError.style.display = 'none';
+      addAgencySuccess.style.display = 'none';
+      var agencyName = addAgencyForm.agency_name.value.trim();
+      var firstName = addAgencyForm.first_name.value.trim();
+      var lastName = addAgencyForm.last_name.value.trim();
+      var email = addAgencyForm.email.value.trim();
+      var password = addAgencyForm.password.value;
+      if (!agencyName || !firstName || !lastName || !email || !password) {
+        addAgencyError.textContent = 'All fields are required.';
+        addAgencyError.style.display = 'block';
+        return;
+      }
+      if (!/^\S+@\S+\.\S+$/.test(email)) {
+        addAgencyError.textContent = 'Invalid email address.';
+        addAgencyError.style.display = 'block';
+        return;
+      }
+      fetch('create_agency.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          agency_name: agencyName,
+          first_name: firstName,
+          last_name: lastName,
+          email: email,
+          password: password
+        })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          addAgencySuccess.textContent = data.message || 'Agency account created successfully!';
+          addAgencySuccess.style.display = 'block';
+          refreshAgenciesTable();
+          setTimeout(function() {
+            addAgencyModalBg.removeAttribute('fade-up');
+            addAgencyModalBg.setAttribute('fade-out', '');
+            setTimeout(function() {
+              addAgencyModalBg.style.display = 'none';
+              addAgencyModalBg.removeAttribute('fade-out');
+            }, 450);
+          }, 3000);
+        } else {
+          addAgencyError.textContent = data.message || 'Failed to create agency.';
+          addAgencyError.style.display = 'block';
+        }
+      })
+      .catch(() => {
+        addAgencyError.textContent = 'Server error. Please try again.';
+        addAgencyError.style.display = 'block';
+      });
+    });
+  }
+  var createAgencyBtn = document.getElementById('create-agency-btn');
+  if (createAgencyBtn) {
+    createAgencyBtn.addEventListener('mouseover', function() {
+      this.style.background = '#fff';
+      this.style.color = '#14213d';
+    });
+    createAgencyBtn.addEventListener('mouseout', function() {
+      this.style.background = '#14213d';
+      this.style.color = '#fff';
+    });
+  }
+  function refreshAgenciesTable() {
+    fetch('fetch_agencies.php')
+      .then(res => res.text())
+      .then(html => {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        const newTable = doc.querySelector('#agencies-user-count-table');
+        if (newTable) {
+          document.getElementById('agencies-user-count-table').innerHTML = newTable.innerHTML;
+        }
+      });
+  }
+  var addUserBtn = document.getElementById('add-user-btn');
+  var addUserModalBg = document.getElementById('add-user-modal-bg');
+  var cancelAddUser = document.getElementById('cancel-add-user');
+  var addUserForm = document.getElementById('add-user-form');
+  var addUserError = document.getElementById('add-user-error');
+  var addUserSuccess = document.getElementById('add-user-success');
+  var createUserBtn = document.getElementById('create-user-btn');
+  if (createUserBtn) {
+    createUserBtn.addEventListener('mouseover', function() {
+      this.style.background = '#fff';
+      this.style.color = '#14213d';
+      this.style.boxShadow = '0 2px 8px #3a5a8c22';
+    });
+    createUserBtn.addEventListener('mouseout', function() {
+      this.style.background = '#14213d';
+      this.style.color = '#fff';
+      this.style.boxShadow = '0 2px 8px #3a5a8c22';
+    });
+  }
+  if (addUserBtn && addUserModalBg && cancelAddUser && addUserForm && addUserError && addUserSuccess) {
+    addUserBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      addUserModalBg.style.display = 'flex';
+      addUserModalBg.removeAttribute('fade-out');
+      addUserModalBg.setAttribute('fade-up', '');
+      addUserForm.reset();
+      addUserError.style.display = 'none';
+      addUserSuccess.style.display = 'none';
+    });
+    cancelAddUser.addEventListener('click', function() {
+      addUserModalBg.removeAttribute('fade-up');
+      addUserModalBg.setAttribute('fade-out', '');
+      setTimeout(function() {
+        addUserModalBg.style.display = 'none';
+        addUserModalBg.removeAttribute('fade-out');
+      }, 450);
+    });
+    addUserModalBg.addEventListener('click', function(e) {
+      if (e.target === addUserModalBg) {
+        addUserModalBg.removeAttribute('fade-up');
+        addUserModalBg.setAttribute('fade-out', '');
+        setTimeout(function() {
+          addUserModalBg.style.display = 'none';
+          addUserModalBg.removeAttribute('fade-out');
+        }, 450);
+      }
+    });
+    addUserForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+      addUserError.style.display = 'none';
+      addUserSuccess.style.display = 'none';
+      var firstName = addUserForm.first_name.value.trim();
+      var lastName = addUserForm.last_name.value.trim();
+      var email = addUserForm.email.value.trim();
+      var password = addUserForm.password.value;
+      var agencyId = addUserForm.agency_id.value;
+      if (!firstName || !lastName || !email || !password || !agencyId) {
+        addUserError.textContent = 'All fields are required.';
+        addUserError.style.display = 'block';
+        return;
+      }
+      if (!/^\S+@\S+\.\S+$/.test(email)) {
+        addUserError.textContent = 'Invalid email address.';
+        addUserError.style.display = 'block';
+        return;
+      }
+      fetch('create_user.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          first_name: firstName,
+          last_name: lastName,
+          email: email,
+          password: password,
+          agency_id: agencyId
+        })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          addUserSuccess.textContent = data.message || 'User account created successfully!';
+          addUserSuccess.style.display = 'block';
+          refreshAgenciesTable && refreshAgenciesTable();
+          setTimeout(function() {
+            addUserModalBg.removeAttribute('fade-up');
+            addUserModalBg.setAttribute('fade-out', '');
+            setTimeout(function() {
+              addUserModalBg.style.display = 'none';
+              addUserModalBg.removeAttribute('fade-out');
+            }, 450);
+          }, 2000);
+        } else {
+          addUserError.textContent = data.message || 'Failed to create user.';
+          addUserError.style.display = 'block';
+        }
+      })
+      .catch(() => {
+        addUserError.textContent = 'Server error. Please try again.';
+        addUserError.style.display = 'block';
+      });
+    });
+  }
+  var addInternalForm = document.getElementById('add-internal-form');
+  var addInternalError = document.getElementById('add-internal-error');
+  var addInternalSuccess = document.getElementById('add-internal-success');
+  if (addInternalForm && addInternalError && addInternalSuccess) {
+    addInternalForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+      addInternalError.style.display = 'none';
+      addInternalSuccess.style.display = 'none';
+      var name = addInternalForm.name.value.trim();
+      var password = addInternalForm.password.value;
+      if (!name || !password) {
+        addInternalError.textContent = 'All fields are required.';
+        addInternalError.style.display = 'block';
+        return;
+      }
+      fetch('create_internal.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: name,
+          password: password
+        })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          addInternalSuccess.textContent = data.message || 'Internal user created successfully!';
+          addInternalSuccess.style.display = 'block';
+          addInternalForm.reset();
+          addInternalModalBg.removeAttribute('fade-up');
+          addInternalModalBg.setAttribute('fade-out', '');
+          setTimeout(function() {
+            addInternalModalBg.style.display = 'none';
+            addInternalModalBg.removeAttribute('fade-out');
+            addInternalSuccess.style.display = 'none';
+          }, 450);
+        } else {
+          addInternalError.textContent = data.message || 'Failed to create internal user.';
+          addInternalError.style.display = 'block';
+        }
+      })
+      .catch(() => {
+        addInternalError.textContent = 'Server error. Please try again.';
+        addInternalError.style.display = 'block';
+      });
+    });
+  }
+  var createInternalBtn = document.getElementById('create-internal-btn');
+  var confirmInternalBtn = document.getElementById('confirm-internal');
+  if (createInternalBtn) {
+    createInternalBtn.style.transition = 'background 0.18s, color 0.18s';
+    createInternalBtn.addEventListener('mouseover', function() {
+      this.style.background = '#fff';
+      this.style.color = '#22325a';
+    });
+    createInternalBtn.addEventListener('mouseout', function() {
+      this.style.background = '#0a1627';
+      this.style.color = '#fff';
+    });
+  }
+  if (confirmInternalBtn) {
+    confirmInternalBtn.style.transition = 'background 0.18s, color 0.18s';
+    confirmInternalBtn.addEventListener('mouseover', function() {
+      this.style.background = '#fff';
+      this.style.color = '#22325a';
+    });
+    confirmInternalBtn.addEventListener('mouseout', function() {
+      this.style.background = '#22325a';
+      this.style.color = '#fff';
     });
   }
 });

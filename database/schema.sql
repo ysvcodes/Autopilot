@@ -17,9 +17,11 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE TABLE IF NOT EXISTS agency_admins (
   id INT AUTO_INCREMENT PRIMARY KEY,
   agency_id INT NOT NULL,
+  agency_name VARCHAR(255) NOT NULL,
   first_name VARCHAR(100) NOT NULL,
   last_name VARCHAR(100) NOT NULL,
   users INT NULL,
+  email VARCHAR(255) NOT NULL UNIQUE,
   password_hash VARCHAR(255) NOT NULL,
   role ENUM('adminagency') DEFAULT 'adminagency',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
