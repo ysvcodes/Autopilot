@@ -74,6 +74,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
             exit();
         }
     } else {
+        // Agency login by email
+        $stmt = $pdo->prepare('SELECT * FROM agency_admins WHERE email = ?');
+        $stmt->execute([$login_email]);
+        $agency = $stmt->fetch();
+        if ($agency && password_verify($login_password, $agency['password_hash'])) {
+            $_SESSION['agency_id'] = $agency['agency_id'];
+            $_SESSION['agency_admin_id'] = $agency['id'];
+            $_SESSION['agency_name'] = $agency['agency_name'] ?? '';
+            $_SESSION['role'] = $agency['role'];
+            header('Location: agencyspanel.php');
+            exit();
+        }
     }
 }
 ?>
