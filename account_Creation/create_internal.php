@@ -1,6 +1,6 @@
 <?php
 header('Content-Type: application/json');
-require_once __DIR__ . '/database_connection/connection.php';
+require_once __DIR__ . '/../database_connection/connection.php';
 $data = json_decode(file_get_contents('php://input'), true);
 if (!isset($data['name'], $data['password'])) {
     echo json_encode(['success' => false, 'message' => 'Missing required fields.']);

@@ -57,15 +57,24 @@ if (isset($_SESSION['isSignupAttempt']) && $_SESSION['isSignupAttempt'] &&
     $isSignupAttempt = true;
     unset($_SESSION['signup_success'], $_SESSION['signup_error'], $_SESSION['clear_form'], $_SESSION['isSignupAttempt']);
 }
-// Admin login logic
+// Admin login 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
+    require_once __DIR__ . '/database_connection/connection.php';
     $login_email = trim($_POST['login_email'] ?? '');
     $login_password = $_POST['login_password'] ?? '';
-    if ($login_email === 'admin@gmail.com' && $login_password === 'admin') {
-        header('Location: admin.php');
-        exit();
+    if (strpos($login_email, '@') === false) {
+        // Admin/internal login by name
+        $stmt = $pdo->prepare('SELECT * FROM internal WHERE name = ?');
+        $stmt->execute([$login_email]);
+        $user = $stmt->fetch();
+        if ($user && password_verify($login_password, $user['password_hash'])) {
+            $_SESSION['user_name'] = $user['name'];
+            $_SESSION['role'] = $user['role'];
+            header('Location: admin.php');
+            exit();
+        }
+    } else {
     }
-    // (You can add normal user login logic here later)
 }
 ?>
 <!DOCTYPE html>
@@ -140,7 +149,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
         <form class="flex flex-col gap-4" method="POST" action="">
           <div>
             <label class="block text-slate-200 font-semibold mb-1">Email</label>
-            <input type="email" name="login_email" placeholder="Email" required class="px-4 py-3 rounded-lg border border-slate-700 bg-[#232f3e] text-slate-100 w-full focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all" />
+            <input type="text" name="login_email" placeholder="Email" required class="px-4 py-3 rounded-lg border border-slate-700 bg-[#232f3e] text-slate-100 w-full focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all" />
           </div>
           <div>
             <label class="block text-slate-200 font-semibold mb-1">Password</label>

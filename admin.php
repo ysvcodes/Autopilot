@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/logs/logout_handler.php';
 // Simple admin dashboard placeholder
 session_start();
 // Optionally, you could check for a session variable here to restrict access
@@ -9,6 +10,7 @@ $user_name = isset($_SESSION['user_name']) ? $_SESSION['user_name'] : 'Admin';
 $agency_counts = [];
 // Fetch agency names for the user modal dropdown
 $agency_options = [];
+$internal_users = [];
 try {
     $stmt1 = $pdo->query('SELECT COUNT(*) as total FROM users');
     $row1 = $stmt1->fetch();
@@ -19,7 +21,7 @@ try {
     $user_count = 0;
 }
 try {
-    $stmt = $pdo->query('SELECT aa.agency_name, COUNT(au.user_id) as user_count FROM agency_admins aa LEFT JOIN agency_users au ON aa.agency_id = au.agency_id WHERE aa.role = "adminagency" GROUP BY aa.agency_id, aa.agency_name');
+    $stmt = $pdo->query('SELECT aa.agency_name, COUNT(au.user_id) as user_count FROM agency_admins aa LEFT JOIN agency_users au ON aa.agency_id = au.agency_id WHERE aa.role = "adminagency" GROUP BY aa.agency_id, aa.agency_name ORDER BY user_count DESC');
     while ($row = $stmt->fetch()) {
         $agency_counts[] = $row;
     }
@@ -34,11 +36,13 @@ try {
 } catch (Exception $e) {
     $agency_options = [];
 }
-if (isset($_POST['logout'])) {
-    session_unset();
-    session_destroy();
-    header('Location: index.php');
-    exit();
+try {
+    $stmt = $pdo->query('SELECT id, name FROM internal ORDER BY name ASC');
+    while ($row = $stmt->fetch()) {
+        $internal_users[] = $row;
+    }
+} catch (Exception $e) {
+    $internal_users = [];
 }
 ?><!DOCTYPE html>
 <html lang="en">
@@ -273,92 +277,23 @@ if (isset($_POST['logout'])) {
         #add-internal-modal-bg[fade-out] > div {
             animation: fadeOut 0.45s cubic-bezier(.4,1.4,.6,1) forwards;
         }
+        #edit-profile-modal-bg[fade-up] > #edit-profile-modal {
+            animation: fadeUp 0.45s cubic-bezier(.4,1.4,.6,1) forwards;
+        }
+        #edit-profile-modal-bg[fade-out] > #edit-profile-modal {
+            animation: fadeOut 0.45s cubic-bezier(.4,1.4,.6,1) forwards;
+        }
+        #delete-internal-modal-bg[fade-up] > #delete-internal-modal {
+            animation: fadeUp 0.45s cubic-bezier(.4,1.4,.6,1) forwards;
+        }
+        #delete-internal-modal-bg[fade-out] > #delete-internal-modal {
+            animation: fadeOut 0.45s cubic-bezier(.4,1.4,.6,1) forwards;
+        }
     </style>
 </head>
 <body>
 <div class="admin-layout">
-    <aside class="sidebar" style="padding-top:0;margin-top:0;padding-bottom:0;background:#000f1d;">
-        <a href="admin.php" class="logo" style="display: flex; align-items: center; justify-content: center; width: 100%; margin-bottom: 0; margin-top:0; padding-top:0;">
-            <img src="assets/autoGB.png" alt="Logo" style="width: 235px; height: 235px; object-fit: contain; display: block; margin-top:0; padding-top:0;" />
-        </a>
-        <nav>
-            <a href="#" class="active">
-                <span style="display:inline-flex;align-items:center;">
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7ecbff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="4" fill="none"/><path d="M9 9h6v6H9z"/></svg>
-                </span>
-                Admin Panel
-            </a>
-            <a href="#">
-                <span style="display:inline-flex;align-items:center;">
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7ecbff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
-                </span>
-                Approval
-            </a>
-            <a href="#">
-                <span style="display:inline-flex;align-items:center;">
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7ecbff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><polyline points="3 7 12 13 21 7"/></svg>
-                </span>
-                Enquiries
-            </a>
-            <a href="#">
-                <span style="display:inline-flex;align-items:center;">
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7ecbff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                </span>
-                Agencies
-            </a>
-            <a href="#">
-                <span style="display:inline-flex;align-items:center;">
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7ecbff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 8-4 8-4s8 0 8 4"/></svg>
-                </span>
-                Users
-            </a>
-            <a href="#">
-                <span style="display:inline-flex;align-items:center;">
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7ecbff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 8h8M8 12h8M8 16h4"/></svg>
-                </span>
-                Logs and Errors
-            </a>
-            <a href="#">
-                <span style="display:inline-flex;align-items:center;">
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7ecbff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 15.5v-7"/><path d="M8.5 12h7"/><circle cx="12" cy="12" r="10"/></svg>
-                </span>
-                System Settings
-            </a>
-            <a href="#">
-                <span style="display:inline-flex;align-items:center;">
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7ecbff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M4 20V4"/>
-                    <path d="M4 4Q8 6,12 4Q16 2,20 4V14Q16 12,12 14Q8 16,4 14V4Z"/>
-                  </svg>
-                </span>
-                Flags and Reports
-            </a>
-            <a href="#">
-                <span style="display:inline-flex;align-items:center;">
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7ecbff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-                </span>
-                Activity Feed
-            </a>
-            <a href="#">
-                <span style="display:inline-flex;align-items:center;">
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7ecbff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
-                </span>
-                Store Management
-            </a>
-            <a href="#" id="sidebar-signout-btn" style="display:flex;align-items:center;gap:12px;padding:16px 0 16px 24px;text-decoration:none;color:#e3342f;font-weight:800;font-size:1.08em;cursor:pointer;margin-top:12px;border-radius:10px;transition:background 0.18s, color 0.18s;"
-                onmouseover="this.style.background='#e3342f';this.style.color='#fff';this.style.fontWeight='900';this.querySelector('svg').style.stroke='#fff';"
-                onmouseout="this.style.background='none';this.style.color='#e3342f';this.style.fontWeight='800';this.querySelector('svg').style.stroke='#e3342f';">
-                <span style="display:inline-flex;align-items:center;">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#e3342f" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-                        <polyline points="16 17 21 12 16 7"/>
-                        <line x1="21" y1="12" x2="9" y2="12"/>
-                    </svg>
-                </span>
-                Sign Out
-            </a>
-        </nav>
-    </aside>
+    <?php $active_page = 'admin'; include 'sidebar.php'; ?>
     <main class="main-content">
         <div class="topbar">
             <!-- Remove Sign Out button from topbar -->
@@ -414,7 +349,7 @@ if (isset($_POST['logout'])) {
                             <span style="display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;background:#0a1a2f;border-radius:12px;">
                                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 8-4 8-4s8 0 8 4"/></svg>
                             </span>
-                            Edit Profiles
+                            Edit Internal Profiles
                         </a>
                     </div>
                     <!-- Search Bar -->
@@ -483,23 +418,39 @@ if (isset($_POST['logout'])) {
 </div>
 <!-- Edit Profile Modal -->
 <div id="edit-profile-modal-bg" style="display:none;position:fixed;z-index:1000;top:0;left:0;width:100vw;height:100vh;background:rgba(10,20,40,0.45);align-items:center;justify-content:center;">
-  <div id="edit-profile-modal" style="background:#fff;border-radius:18px;box-shadow:0 8px 32px #00132333;padding:32px 32px 24px 32px;min-width:320px;max-width:95vw;width:370px;display:flex;flex-direction:column;gap:18px;align-items:stretch;">
-    <h2 style="font-size:1.3em;font-weight:800;margin-bottom:8px;color:#14213d;">Edit Profile</h2>
-    <form id="edit-profile-form" style="display:flex;flex-direction:column;gap:14px;">
-      <label style="font-weight:600;color:#14213d;">First Name
-        <input type="text" name="first_name" value="John" style="margin-top:4px;padding:10px 12px;border-radius:8px;border:1px solid #e3e8f0;outline:none;" />
-      </label>
-      <label style="font-weight:600;color:#14213d;">Last Name
-        <input type="text" name="last_name" value="Doe" style="margin-top:4px;padding:10px 12px;border-radius:8px;border:1px solid #e3e8f0;outline:none;" />
-      </label>
-      <label style="font-weight:600;color:#14213d;">Email
-        <input type="email" name="email" value="john@example.com" style="margin-top:4px;padding:10px 12px;border-radius:8px;border:1px solid #e3e8f0;outline:none;" />
-      </label>
-      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:10px;">
-        <button type="button" id="cancel-edit-profile" style="background:#e3e8f0;color:#14213d;border:none;border-radius:8px;padding:8px 18px;font-weight:700;cursor:pointer;">Cancel</button>
-        <button type="submit" style="background:#14213d;color:#fff;border:none;border-radius:8px;padding:8px 18px;font-weight:700;cursor:pointer;">Save</button>
+  <div id="edit-profile-modal" style="background:#fff;border-radius:18px;box-shadow:0 8px 32px #00132333;padding:32px 32px 24px 32px;min-width:340px;max-width:95vw;width:420px;display:flex;flex-direction:column;gap:18px;align-items:stretch;">
+    <h2 style="font-size:1.3em;font-weight:800;margin-bottom:8px;color:#14213d;">Edit Internal Profiles</h2>
+    <div style="display:flex;gap:18px;align-items:flex-start;">
+      <div style="min-width:140px;max-width:180px;">
+        <div style="font-weight:700;color:#22325a;margin-bottom:8px;">Select Profile:</div>
+        <ul id="internal-user-list" style="list-style:none;padding:0;margin:0;max-height:220px;overflow-y:auto;">
+          <?php foreach ($internal_users as $user): ?>
+            <li data-id="<?= htmlspecialchars($user['id']) ?>" data-name="<?= htmlspecialchars($user['name']) ?>" class="internal-user-list-item" style="padding:8px 12px;border-radius:8px;cursor:pointer;margin-bottom:4px;font-weight:600;color:#22325a;transition:background 0.15s;">
+              <?= htmlspecialchars($user['name']) ?>
+            </li>
+          <?php endforeach; ?>
+          <?php if (empty($internal_users)): ?>
+            <li style="color:#888;">No internal users found.</li>
+          <?php endif; ?>
+        </ul>
       </div>
-    </form>
+      <form id="edit-internal-form" style="flex:1;display:flex;flex-direction:column;gap:14px;">
+        <input type="hidden" name="id" id="edit-internal-id" />
+        <label style="font-weight:600;color:#14213d;">Name
+          <input type="text" name="name" id="edit-internal-name" style="margin-top:4px;padding:10px 12px;border-radius:8px;border:1px solid #e3e8f0;outline:none;" />
+        </label>
+        <label style="font-weight:600;color:#14213d;">Password <span style="font-weight:400;color:#888;font-size:0.95em;">(leave blank to keep unchanged)</span>
+          <input type="password" name="password" id="edit-internal-password" style="margin-top:4px;padding:10px 12px;border-radius:8px;border:1px solid #e3e8f0;outline:none;" />
+        </label>
+        <div id="edit-internal-success" style="display:none;color:#4bb543;background:#d4edda;padding:8px 12px;border-radius:6px;text-align:center;font-weight:700;"></div>
+        <div id="edit-internal-error" style="display:none;color:#e3342f;background:#f8d7da;padding:8px 12px;border-radius:6px;text-align:center;font-weight:700;"></div>
+        <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:10px;">
+          <button type="button" id="delete-internal-profile" style="background:#e3342f;color:#fff;border:none;border-radius:8px;padding:8px 18px;font-weight:700;cursor:pointer;">Delete</button>
+          <button type="button" id="cancel-edit-profile" style="background:#e3e8f0;color:#14213d;border:none;border-radius:8px;padding:8px 18px;font-weight:700;cursor:pointer;">Cancel</button>
+          <button type="submit" style="background:#14213d;color:#fff;border:none;border-radius:8px;padding:8px 18px;font-weight:700;cursor:pointer;">Save</button>
+        </div>
+      </form>
+    </div>
   </div>
 </div>
 <!-- Add floating big plus button at bottom right -->
@@ -511,7 +462,8 @@ if (isset($_POST['logout'])) {
 <!-- Logout Confirmation Modal -->
 <div id="logout-modal-bg" style="display:none;position:fixed;z-index:2000;top:0;left:0;width:100vw;height:100vh;background:rgba(10,20,40,0.45);align-items:center;justify-content:center;">
   <div style="background:#fff;border-radius:16px;box-shadow:0 8px 32px #00132333;padding:32px 32px 24px 32px;min-width:320px;max-width:95vw;width:350px;display:flex;flex-direction:column;gap:18px;align-items:stretch;">
-    <h2 style="font-size:1.2em;font-weight:800;margin-bottom:8px;color:#e3342f;">Are you sure you want to log out?</h2>
+    <h1 style="font-size:1.5em;font-weight:900;margin-bottom:0;color:#e3342f;text-align:center;">Logout</h1>
+    <h2 style="font-size:1.2em;font-weight:800;margin-bottom:8px;color:#e3342f;text-align:center;">Are you sure you want to log out?</h2>
     <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:10px;">
       <button id="cancel-logout" type="button" style="background:#e3e8f0;color:#14213d;border:none;border-radius:8px;padding:8px 18px;font-weight:700;cursor:pointer;">Cancel</button>
       <button id="confirm-logout" type="submit" form="logout-form" name="logout" value="1" style="background:#b22234;color:#fff;border:none;border-radius:8px;padding:8px 18px;font-weight:800;cursor:pointer;transition:background 0.18s, font-weight 0.18s;">Log Out</button>
@@ -624,6 +576,17 @@ if (isset($_POST['logout'])) {
     </form>
   </div>
 </div>
+<!-- Delete Internal Confirmation Modal -->
+<div id="delete-internal-modal-bg" style="display:none;position:fixed;z-index:2000;top:0;left:0;width:100vw;height:100vh;background:rgba(10,20,40,0.45);align-items:center;justify-content:center;">
+  <div id="delete-internal-modal" style="background:#fff;border-radius:16px;box-shadow:0 8px 32px #00132333;padding:32px 32px 24px 32px;min-width:320px;max-width:95vw;width:350px;display:flex;flex-direction:column;gap:18px;align-items:stretch;">
+    <h2 style="font-size:1.2em;font-weight:800;margin-bottom:8px;color:#e3342f;">Delete Internal Profile</h2>
+    <div id="delete-internal-modal-msg" style="font-size:1.08em;color:#22325a;margin-bottom:24px;">Are you sure you want to delete this internal profile? This action cannot be undone.</div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:10px;">
+      <button id="cancel-delete-internal" type="button" style="background:#e3e8f0;color:#14213d;border:none;border-radius:8px;padding:8px 18px;font-weight:700;cursor:pointer;">Cancel</button>
+      <button id="confirm-delete-internal" type="button" style="background:#e3342f;color:#fff;border:none;border-radius:8px;padding:8px 18px;font-weight:800;cursor:pointer;">Delete</button>
+    </div>
+  </div>
+</div>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
   // Force hide the modal on page load
@@ -634,18 +597,94 @@ document.addEventListener('DOMContentLoaded', function() {
   var editProfileLink = document.getElementById('edit-profile-link');
   var modalBg = document.getElementById('edit-profile-modal-bg');
   var cancelBtn = document.getElementById('cancel-edit-profile');
+  var internalUserList = document.getElementById('internal-user-list');
+  var editInternalForm = document.getElementById('edit-internal-form');
+  var editInternalId = document.getElementById('edit-internal-id');
+  var editInternalName = document.getElementById('edit-internal-name');
+  var editInternalPassword = document.getElementById('edit-internal-password');
+  var editInternalSuccess = document.getElementById('edit-internal-success');
+  var editInternalError = document.getElementById('edit-internal-error');
+  var selectedItem = null;
+  function selectInternalUser(li) {
+    if (selectedItem) selectedItem.style.background = '';
+    selectedItem = li;
+    li.style.background = '#e3e8f0';
+    editInternalId.value = li.getAttribute('data-id');
+    editInternalName.value = li.getAttribute('data-name');
+    editInternalPassword.value = '';
+    editInternalSuccess.style.display = 'none';
+    editInternalError.style.display = 'none';
+  }
+  if (internalUserList) {
+    var items = internalUserList.querySelectorAll('.internal-user-list-item');
+    if (items.length > 0) selectInternalUser(items[0]);
+    items.forEach(function(li) {
+      li.addEventListener('click', function() {
+        selectInternalUser(li);
+      });
+    });
+  }
   if (editProfileLink && modalBg && cancelBtn) {
     editProfileLink.addEventListener('click', function(e) {
       e.preventDefault();
       modalBg.style.display = 'flex';
+      modalBg.removeAttribute('fade-out');
+      modalBg.setAttribute('fade-up', '');
     });
     cancelBtn.addEventListener('click', function() {
-      modalBg.style.display = 'none';
+      modalBg.removeAttribute('fade-up');
+      modalBg.setAttribute('fade-out', '');
+      setTimeout(function() {
+        modalBg.style.display = 'none';
+        modalBg.removeAttribute('fade-out');
+      }, 450);
     });
     modalBg.addEventListener('click', function(e) {
       if (e.target === modalBg) {
-        modalBg.style.display = 'none';
+        modalBg.removeAttribute('fade-up');
+        modalBg.setAttribute('fade-out', '');
+        setTimeout(function() {
+          modalBg.style.display = 'none';
+          modalBg.removeAttribute('fade-out');
+        }, 450);
       }
+    });
+  }
+  if (editInternalForm) {
+    editInternalForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+      editInternalSuccess.style.display = 'none';
+      editInternalError.style.display = 'none';
+      var id = editInternalId.value;
+      var name = editInternalName.value.trim();
+      var password = editInternalPassword.value;
+      if (!id || !name) {
+        editInternalError.textContent = 'Name is required.';
+        editInternalError.style.display = 'block';
+        return;
+      }
+      fetch('account_Creation/edit_internal.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: id, name: name, password: password })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          editInternalSuccess.textContent = data.message || 'Profile updated!';
+          editInternalSuccess.style.display = 'block';
+          // Update the list item name
+          if (selectedItem) selectedItem.setAttribute('data-name', name);
+          if (selectedItem) selectedItem.textContent = name;
+        } else {
+          editInternalError.textContent = data.message || 'Failed to update profile.';
+          editInternalError.style.display = 'block';
+        }
+      })
+      .catch(() => {
+        editInternalError.textContent = 'Server error. Please try again.';
+        editInternalError.style.display = 'block';
+      });
     });
   }
   var sidebarSignoutBtn = document.getElementById('sidebar-signout-btn');
@@ -745,7 +784,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     confirmInternal.addEventListener('click', function() {
       var masterPass = internalPassInput.value;
-      fetch('verify_internal_password.php', {
+      fetch('logs/verify_internal_password.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password: masterPass })
@@ -829,7 +868,7 @@ document.addEventListener('DOMContentLoaded', function() {
         addAgencyError.style.display = 'block';
         return;
       }
-      fetch('create_agency.php', {
+      fetch('account_Creation/create_agency.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -877,7 +916,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
   function refreshAgenciesTable() {
-    fetch('fetch_agencies.php')
+    fetch('agency_handler/fetch_agencies.php')
       .then(res => res.text())
       .then(html => {
         const parser = new DOMParser();
@@ -954,7 +993,7 @@ document.addEventListener('DOMContentLoaded', function() {
         addUserError.style.display = 'block';
         return;
       }
-      fetch('create_user.php', {
+      fetch('account_Creation/create_user.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1005,7 +1044,7 @@ document.addEventListener('DOMContentLoaded', function() {
         addInternalError.style.display = 'block';
         return;
       }
-      fetch('create_internal.php', {
+      fetch('account_Creation/create_internal.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1059,6 +1098,90 @@ document.addEventListener('DOMContentLoaded', function() {
     confirmInternalBtn.addEventListener('mouseout', function() {
       this.style.background = '#22325a';
       this.style.color = '#fff';
+    });
+  }
+  var deleteBtn = document.getElementById('delete-internal-profile');
+  var deleteInternalModalBg = document.getElementById('delete-internal-modal-bg');
+  var confirmDeleteInternal = document.getElementById('confirm-delete-internal');
+  var cancelDeleteInternal = document.getElementById('cancel-delete-internal');
+  var deleteInternalModalMsg = document.getElementById('delete-internal-modal-msg');
+  var pendingDeleteId = null;
+  if (deleteBtn && internalUserList && deleteInternalModalBg && confirmDeleteInternal && cancelDeleteInternal) {
+    deleteBtn.addEventListener('click', function() {
+      if (!editInternalId.value) return;
+      pendingDeleteId = editInternalId.value;
+      var name = editInternalName.value || '';
+      deleteInternalModalMsg.textContent = 'Are you sure you want to delete the internal profile "' + name + '"? This action cannot be undone.';
+      deleteInternalModalBg.style.display = 'flex';
+      deleteInternalModalBg.removeAttribute('fade-out');
+      deleteInternalModalBg.setAttribute('fade-up', '');
+    });
+    cancelDeleteInternal.addEventListener('click', function() {
+      deleteInternalModalBg.removeAttribute('fade-up');
+      deleteInternalModalBg.setAttribute('fade-out', '');
+      setTimeout(function() {
+        deleteInternalModalBg.style.display = 'none';
+        deleteInternalModalBg.removeAttribute('fade-out');
+      }, 450);
+      pendingDeleteId = null;
+    });
+    deleteInternalModalBg.addEventListener('click', function(e) {
+      if (e.target === deleteInternalModalBg) {
+        deleteInternalModalBg.removeAttribute('fade-up');
+        deleteInternalModalBg.setAttribute('fade-out', '');
+        setTimeout(function() {
+          deleteInternalModalBg.style.display = 'none';
+          deleteInternalModalBg.removeAttribute('fade-out');
+        }, 450);
+        pendingDeleteId = null;
+      }
+    });
+    confirmDeleteInternal.addEventListener('click', function() {
+      if (!pendingDeleteId) return;
+      fetch('account_Creation/delete_internal.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: pendingDeleteId })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          // Remove from list
+          if (selectedItem) {
+            var next = selectedItem.nextElementSibling || selectedItem.previousElementSibling;
+            selectedItem.remove();
+            selectedItem = null;
+            if (next && next.classList.contains('internal-user-list-item')) {
+              selectInternalUser(next);
+            } else {
+              // No more users
+              editInternalId.value = '';
+              editInternalName.value = '';
+              editInternalPassword.value = '';
+            }
+          }
+        } else {
+          alert(data.message || 'Failed to delete internal user.');
+        }
+        // Close modal
+        deleteInternalModalBg.removeAttribute('fade-up');
+        deleteInternalModalBg.setAttribute('fade-out', '');
+        setTimeout(function() {
+          deleteInternalModalBg.style.display = 'none';
+          deleteInternalModalBg.removeAttribute('fade-out');
+        }, 450);
+        pendingDeleteId = null;
+      })
+      .catch(() => {
+        alert('Server error. Please try again.');
+        deleteInternalModalBg.removeAttribute('fade-up');
+        deleteInternalModalBg.setAttribute('fade-out', '');
+        setTimeout(function() {
+          deleteInternalModalBg.style.display = 'none';
+          deleteInternalModalBg.removeAttribute('fade-out');
+        }, 450);
+        pendingDeleteId = null;
+      });
     });
   }
 });
