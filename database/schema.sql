@@ -57,9 +57,15 @@ CREATE TABLE IF NOT EXISTS automations (
   name VARCHAR(255) NOT NULL,
   api VARCHAR(255) NOT NULL UNIQUE,
   description TEXT,
-  type VARCHAR(100),
-  config JSON,
-  status VARCHAR(50) DEFAULT 'active',
+  automation_notes TEXT,
+  type ENUM('Lead Gen','Scraper','Cold Email','Data Enrichment','CRM Sync','Social Media','Outreach','Form Filler','Email Verifier','Other') NOT NULL DEFAULT 'Other',
+  pricing INT NOT NULL,
+  pricing_model ENUM('one_time', 'monthly', 'per_run', 'free_trial', 'first_run_free') DEFAULT 'one_time',
+  is_trial_available BOOLEAN DEFAULT FALSE,
+  run_limit INT DEFAULT NULL,
+  tags VARCHAR(255),
+  scheduling ENUM('manual', 'daily', 'weekly', 'monthly') DEFAULT 'manual',
+  status ENUM('active', 'inactive') DEFAULT 'active',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   CONSTRAINT fk_automations_admin FOREIGN KEY (admin_id) REFERENCES agency_admins(id) ON DELETE CASCADE
@@ -100,4 +106,20 @@ CREATE TABLE IF NOT EXISTS automation_runs (
   CONSTRAINT fk_run_automation FOREIGN KEY (automation_id) REFERENCES automations(id) ON DELETE CASCADE,
   CONSTRAINT fk_run_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
   CONSTRAINT fk_run_agency FOREIGN KEY (agency_id) REFERENCES agencies(agency_id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS automation_errors (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  automation_run_id INT NOT NULL,
+  automation_id INT NOT NULL,
+  agency_id INT NOT NULL,
+  user_id INT,
+  error_type VARCHAR(100),
+  error_message TEXT,
+  error_details TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_error_run FOREIGN KEY (automation_run_id) REFERENCES automation_runs(id) ON DELETE CASCADE,
+  CONSTRAINT fk_error_automation FOREIGN KEY (automation_id) REFERENCES automations(id) ON DELETE CASCADE,
+  CONSTRAINT fk_error_agency FOREIGN KEY (agency_id) REFERENCES agencies(agency_id) ON DELETE CASCADE,
+  CONSTRAINT fk_error_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
 );

@@ -113,7 +113,7 @@ include_once 'logs/logout_handler.php';
 </head>
 <body>
 <div class="admin-layout">
-<?php include 'sidebar.php'; ?>
+<?php $active_page = 'agencies'; include 'sidebar.php'; ?>
     <main class="main-content">
         <div style="font-size:1em;font-weight:800;color:#111;margin-bottom:2px;">Admin View</div>
         <div class="welcome" style="margin-bottom:12px;font-size:2em;font-weight:700;">Logged in as <span style="color:#178fff;font-weight:900;">Admin</span></div>

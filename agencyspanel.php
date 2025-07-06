@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/logs/logout_handler.php';
 session_start();
 if (!isset($_SESSION['agency_id'])) {
     header('Location: index.php');
@@ -13,10 +14,15 @@ $stmt = $pdo->prepare("SELECT COUNT(*) FROM automations WHERE agency_id = ? AND 
 $stmt->execute([$agency_id]);
 $active_automations = $stmt->fetchColumn();
 
-// Recent Activity: 3 most recent automations (name, status, created_at)
-$stmt = $pdo->prepare("SELECT name, status, created_at FROM automations WHERE agency_id = ? ORDER BY created_at DESC LIMIT 3");
+// Fetch total automations (active or inactive) for the agency
+$stmt = $pdo->prepare("SELECT COUNT(*) FROM automations WHERE agency_id = ?");
 $stmt->execute([$agency_id]);
-$recent_automations = $stmt->fetchAll();
+$total_automations = $stmt->fetchColumn();
+
+// Recent Activity: 10 most recent events for this agency from activity_log
+$stmt = $pdo->prepare("SELECT type, description, created_at FROM activity_log WHERE agency_id = ? ORDER BY created_at DESC LIMIT 10");
+$stmt->execute([$agency_id]);
+$recent_activity = $stmt->fetchAll();
 
 // Top Error Causes: top 3 automation statuses that are not 'active' (simulate errors)
 $stmt = $pdo->prepare("SELECT status, COUNT(*) as count FROM automations WHERE agency_id = ? AND status != 'active' GROUP BY status ORDER BY count DESC LIMIT 3");
@@ -37,6 +43,47 @@ $automation_count = $stmt->fetchColumn();
 $stmt = $pdo->prepare("SELECT COALESCE(SUM(time_saved_hours),0) FROM automation_runs WHERE agency_id = ?");
 $stmt->execute([$agency_id]);
 $time_saved = $stmt->fetchColumn();
+
+// Time Saved This Week
+$stmt = $pdo->prepare("SELECT COALESCE(SUM(time_saved_hours),0) FROM automation_runs WHERE agency_id = ? AND YEARWEEK(created_at, 1) = YEARWEEK(CURDATE(), 1)");
+$stmt->execute([$agency_id]);
+$time_saved_this_week = $stmt->fetchColumn();
+
+// Time Saved Last Week
+$stmt = $pdo->prepare("SELECT COALESCE(SUM(time_saved_hours),0) FROM automation_runs WHERE agency_id = ? AND YEARWEEK(created_at, 1) = YEARWEEK(CURDATE() - INTERVAL 1 WEEK, 1)");
+$stmt->execute([$agency_id]);
+$time_saved_last_week = $stmt->fetchColumn();
+
+$time_saved_diff = $time_saved_this_week - $time_saved_last_week;
+$time_saved_diff_text = ($time_saved_diff >= 0 ? '↗ +' : '↓ ') . abs(round($time_saved_diff, 1)) . ' hours this week';
+
+// Weekly Activity: time saved per day (Mon-Sun)
+$stmt = $pdo->prepare("
+    SELECT DAYOFWEEK(created_at) AS day_of_week, COALESCE(SUM(time_saved_hours),0) AS hours_saved
+    FROM automation_runs
+    WHERE agency_id = ? AND YEARWEEK(created_at, 1) = YEARWEEK(CURDATE(), 1)
+    GROUP BY day_of_week
+");
+$stmt->execute([$agency_id]);
+$weekly_activity = array_fill(1, 7, 0); // 1=Sunday, 7=Saturday
+foreach ($stmt->fetchAll() as $row) {
+    $weekly_activity[(int)$row['day_of_week']] = (float)$row['hours_saved'];
+}
+// Reorder to Mon-Sun (PHP: 1=Sunday, 2=Monday, ..., 7=Saturday)
+$weekly_activity_ordered = [
+    $weekly_activity[2] ?? 0, // Monday
+    $weekly_activity[3] ?? 0, // Tuesday
+    $weekly_activity[4] ?? 0, // Wednesday
+    $weekly_activity[5] ?? 0, // Thursday
+    $weekly_activity[6] ?? 0, // Friday
+    $weekly_activity[7] ?? 0, // Saturday
+    $weekly_activity[1] ?? 0, // Sunday
+];
+
+// Get agency's user count (signed clients)
+$stmt = $pdo->prepare("SELECT COUNT(*) FROM users WHERE agency_id = ?");
+$stmt->execute([$agency_id]);
+$signed_clients = $stmt->fetchColumn();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -126,6 +173,7 @@ $time_saved = $stmt->fetchColumn();
             height: 100vh;
             overflow-y: auto;
             color: #fff;
+            overflow: hidden !important;
         }
         .dashboard-cards {
             display: flex;
@@ -534,12 +582,12 @@ $time_saved = $stmt->fetchColumn();
             <img src="assets/logo-light.png" alt="Logo" style="width: 235px; height: 235px; object-fit: contain; display: block; margin-top:0; padding-top:0;" />
         </a>
         <nav>
-            <a href="#" class="active"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7ecbff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="4" fill="none"/><path d="M9 9h6v6H9z"/></svg>Agency Overview</a>
-            <a href="#"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7ecbff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="7" width="16" height="10" rx="4"/><circle cx="8.5" cy="12" r="1"/><circle cx="15.5" cy="12" r="1"/><path d="M10 16h4"/><line x1="12" y1="3" x2="12" y2="7"/></svg>Automations</a>
-            <a href="#"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7ecbff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1.5"/><circle cx="20" cy="21" r="1.5"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>My Store</a>
-            <a href="#"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7ecbff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 8-4 8-4s8 0 8 4"/></svg>Clients</a>
-            <a href="#"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7ecbff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 8h8M8 12h8M8 16h4"/></svg>Logs and Errors</a>
-            <a href="#"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7ecbff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Inbox</a>
+            <a href="agencyspanel.php" class="active"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7ecbff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="4" fill="none"/><path d="M9 9h6v6H9z"/></svg>Agency Overview</a>
+            <a href="automations.php"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7ecbff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="7" width="16" height="10" rx="4"/><circle cx="8.5" cy="12" r="1"/><circle cx="15.5" cy="12" r="1"/><path d="M10 16h4"/><line x1="12" y1="3" x2="12" y2="7"/></svg>Automations</a>
+            <a href="store.php"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7ecbff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1.5"/><circle cx="20" cy="21" r="1.5"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>My Store</a>
+            <a href="clients.php"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7ecbff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 8-4 8-4s8 0 8 4"/></svg>Clients</a>
+            <a href="logs.php"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7ecbff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 8h8M8 12h8M8 16h4"/></svg>Logs and Errors</a>
+            <a href="inbox.php"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7ecbff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Inbox</a>
             <button class="signout" id="sidebar-signout-btn">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#e3342f" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
@@ -551,10 +599,14 @@ $time_saved = $stmt->fetchColumn();
         </nav>
     </aside>
     <main class="main-content">
-        <h1>Welcome to the Agency Panel</h1>
-        <div class="welcome">Logged in as <span style="color:#178fff;font-weight:900;"><?= htmlspecialchars($agency_name) ?></span></div>
-        <div class="subtitle-agency">This is the Agency Page where you can link your <b>automations</b>, manage your <b>clients</b>, and see <b>results</b>.</div>
-        <div class="main-content">
+        <h1 style="font-size:2.2em;font-weight:900;color:#fff;margin-bottom:0;">Welcome to the Agency Panel</h1>
+        <div class="welcome" style="font-size:1.08em;font-weight:700;margin-bottom:4px;margin-top:2px;color:#fff;">
+            Logged in as <span style="color:#178fff;font-weight:900;"><?= htmlspecialchars($agency_name) ?></span>
+            <span style="margin-left:6px;">      |      <span style="font-style:italic;">Agency Code:</span> <span style="font-weight:900;color:#7ecbff;font-style:italic;"><?= htmlspecialchars($agency_id) ?></span></span>
+            <span style="margin-left:18px;opacity:0.7;font-weight:600;">Share Your Agency Code with New Clients when they Sign up.</span>
+        </div>
+        <div class="subtitle-agency" style="color:#4a5a6a;font-size:1.08em;font-weight:600;margin-bottom:2px;">This is the Agency Page where you can link your <b>automations</b>, manage your <b>clients</b>, and see <b>results</b>.</div>
+        <div style="margin-left:2px;max-width:100vw;">
             <div class="bell-notification">
                 <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#7ecbff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M18 16v-5a6 6 0 1 0-12 0v5l-1.5 2h15z"/>
@@ -564,8 +616,10 @@ $time_saved = $stmt->fetchColumn();
             <div class="dashboard-cards" style="margin-bottom: 24px;">
                 <div class="dashboard-card" style="border:1.5px solid #232f3e;">
                     <div class="label">Active Automations</div>
-                    <div class="value" style="color:#fff;"><?php echo $active_automations; ?></div>
-                    <div class="sub" style="color:#3ad1ff;">&nbsp;</div>
+                    <div class="value" style="color:#fff;">
+                        <?php echo $active_automations; ?>
+                    </div>
+                    <div class="sub" style="color:#3ad1ff;">Including inactive automations: <?php echo $total_automations; ?></div>
                     <div class="icon" style="background:#3864fa;padding:8px 12px;border-radius:8px;"><svg width="24" height="24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h16M12 4v16"/></svg></div>
                 </div>
                 <div class="dashboard-card" style="border:1.5px solid #232f3e;">
@@ -573,14 +627,22 @@ $time_saved = $stmt->fetchColumn();
                     <div class="value" style="color:#fff;">
                         <?php echo round($time_saved, 1); ?>
                     </div>
-                    <div class="sub" style="color:#3ad1ff;">↗ +8 hours this week</div>
-                    <div class="icon" style="background:#1ec97e;padding:8px 12px;border-radius:8px;"><svg width="24" height="24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></div>
+                    <div class="sub" style="color:#3ad1ff;">
+                        <?php echo $time_saved_diff_text; ?>
+                    </div>
+                    <div class="icon" style="background:#1ec97e;padding:8px 12px;border-radius:8px;">
+                        <svg width="24" height="24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                    </div>
                 </div>
                 <div class="dashboard-card" style="border:1.5px solid #232f3e;">
-                    <div class="label">Success Rate</div>
-                    <div class="value" style="color:#fff;">94.2%</div>
-                    <div class="sub" style="color:#3ad1ff;">↗ +2.1% improvement</div>
-                    <div class="icon" style="background:#a259f7;padding:8px 12px;border-radius:8px;"><svg width="24" height="24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+                    <div class="label">Signed Clients</div>
+                    <div class="value" style="color:#fff;">
+                        <?php echo $signed_clients; ?>
+                    </div>
+                    <div class="sub" style="color:#3ad1ff;">Total users signed to your agency</div>
+                    <div class="icon" style="background:#a259f7;padding:8px 12px;border-radius:8px;">
+                        <svg width="24" height="24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 8-4 8-4s8 0 8 4"/></svg>
+                    </div>
                 </div>
                 <div class="dashboard-card" style="border:1.5px solid #232f3e;">
                     <div class="label" style="color:#b6c6d7;">Most Used</div>
@@ -621,9 +683,16 @@ $time_saved = $stmt->fetchColumn();
                         <div class="vline" style="left:78.56%;"></div>
                         <div class="vline" style="left:85.7%;"></div>
                         <div class="vline" style="left:92.84%;"></div>
-                        <?php if ($automation_count == 0): ?>
+                        <?php
+                        $max = max($weekly_activity_ordered);
+                        if ($max == 0): ?>
                             <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#fff;opacity:0.5;font-size:1.2em;z-index:2;">No data</div>
-                        <?php endif; ?>
+                        <?php else:
+                            foreach ($weekly_activity_ordered as $i => $val):
+                                $height = $max > 0 ? (80 * $val / $max) : 0; // 80px max height
+                        ?>
+                            <div style="position:absolute;bottom:32px;left:calc(<?= $i ?>*14.28% + 7%);width:8%;height:<?= $height ?>px;background:#3ad1ff;border-radius:6px 6px 0 0;z-index:2;transition:height 0.2s;" title="<?= $val ?> hours"></div>
+                        <?php endforeach; endif; ?>
                     </div>
                     <div class="days-row">
                         <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
@@ -651,12 +720,26 @@ $time_saved = $stmt->fetchColumn();
                     <span style="color:#fff;opacity:0.25;font-size:0.98em;margin-left:12px;">- Most recent Client Activity and Automation updates and sendouts</span>
                 </div>
                 <ul class="activity-list">
-                    <?php if (count($recent_automations) === 0): ?>
+                    <?php if (count($recent_activity) === 0): ?>
                         <li style="opacity:0.5;text-align:center;width:100%;max-width:100%;box-sizing:border-box;white-space:normal;overflow-wrap:break-word;">No recent activity to show.</li>
                     <?php else: ?>
-                        <?php foreach ($recent_automations as $row): ?>
+                        <?php foreach ($recent_activity as $row): ?>
+                            <?php
+                            // Color coding: green for user_assigned, user_edited, automation_created; orange for user_edited, automation_updated; red for user_removed, error, automation_deleted
+                            $type = $row['type'];
+                            if ($type === 'error' || $type === 'user_removed' || $type === 'automation_deleted') {
+                                $dot = '#e3342f'; // red
+                            } elseif ($type === 'user_edited' || $type === 'automation_updated') {
+                                $dot = '#ff9900'; // orange
+                            } else {
+                                $dot = '#1ec97e'; // green
+                            }
+                            ?>
                             <li>
-                                <span class="activity-status"><span class="dot" style="background:<?php echo ($row['status'] == 'active') ? '#1ec97e' : '#e3342f'; ?>;"></span><?php echo htmlspecialchars($row['name']); ?> (<?php echo htmlspecialchars($row['status']); ?>)</span>
+                                <span class="activity-status">
+                                    <span class="dot" style="background:<?php echo $dot; ?>;"></span>
+                                    <?php echo htmlspecialchars($row['description']); ?>
+                                </span>
                                 <span class="time"><?php echo date('M d, H:i', strtotime($row['created_at'])); ?></span>
                             </li>
                         <?php endforeach; ?>
@@ -677,7 +760,7 @@ $time_saved = $stmt->fetchColumn();
     </div>
   </div>
 </div>
-<form id="logout-form" method="POST" action="logs/logout_handler.php" style="display:none;"><input type="hidden" name="logout" value="1" /></form>
+<form id="logout-form" method="POST" style="display:none;"><input type="hidden" name="logout" value="1" /></form>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
   var sidebarSignoutBtn = document.getElementById('sidebar-signout-btn');

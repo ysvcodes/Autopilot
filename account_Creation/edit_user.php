@@ -46,6 +46,9 @@ try {
     $stmt->execute([$agency_id]);
     $agency_row = $stmt->fetch();
     $agency_name = $agency_row ? $agency_row['agency_name'] : '';
+    // Log user edit
+    $stmt = $pdo->prepare('INSERT INTO activity_log (agency_id, user_id, type, description) VALUES (?, ?, ?, ?)');
+    $stmt->execute([$agency_id, $user_id, 'user_edited', "User $first_name $last_name ($email) updated"]);
     echo json_encode(['success' => true, 'agency_name' => $agency_name]);
 } catch (Exception $e) {
     echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);

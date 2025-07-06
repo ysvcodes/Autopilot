@@ -158,14 +158,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
           <h1 class="text-3xl md:text-4xl font-extrabold" style="background: linear-gradient(90deg, #1397d4 0%, #0769b0 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; color: transparent;"><span id="typewriter"></span></h1>
           <p class="text-center mb-2" style="color: #eeecea; opacity: 0.8;">Sign in to your account to manage your automations</p>
         </div>
-        <form class="flex flex-col gap-4" method="POST" action="">
+        <form class="flex flex-col gap-4" method="POST" action="" id="login-form">
           <div>
             <label class="block text-slate-200 font-semibold mb-1">Email</label>
-            <input type="text" name="login_email" placeholder="Email" required class="px-4 py-3 rounded-lg border border-slate-700 bg-[#232f3e] text-slate-100 w-full focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all" />
+            <input type="text" name="login_email" id="login_email" placeholder="Email" required class="px-4 py-3 rounded-lg border border-slate-700 bg-[#232f3e] text-slate-100 w-full focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all" />
           </div>
           <div>
             <label class="block text-slate-200 font-semibold mb-1">Password</label>
-            <input type="password" name="login_password" placeholder="Password" required class="px-4 py-3 rounded-lg border border-slate-700 bg-[#232f3e] text-slate-100 w-full focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all" />
+            <input type="password" name="login_password" id="login_password" placeholder="Password" required class="px-4 py-3 rounded-lg border border-slate-700 bg-[#232f3e] text-slate-100 w-full focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all" />
           </div>
           <p class="text-xs text-slate-400">For demo, use: john@example.com (any password)</p>
           <div class="flex items-center justify-between text-sm">
@@ -307,6 +307,52 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
     </div>
   </div>
   <script>
+    // Remember Me functionality
+    document.addEventListener('DOMContentLoaded', function() {
+      const loginForm = document.getElementById('login-form');
+      const emailInput = document.getElementById('login_email');
+      const passwordInput = document.getElementById('login_password');
+      const rememberCheckbox = document.getElementById('remember');
+      
+      // Load saved credentials on page load
+      const savedEmail = localStorage.getItem('autopilot_remember_email');
+      const savedPassword = localStorage.getItem('autopilot_remember_password');
+      const rememberMe = localStorage.getItem('autopilot_remember_me');
+      
+      if (savedEmail && savedPassword && rememberMe === 'true') {
+        emailInput.value = savedEmail;
+        passwordInput.value = savedPassword;
+        rememberCheckbox.checked = true;
+      }
+      
+      // Save credentials when form is submitted
+      if (loginForm) {
+        loginForm.addEventListener('submit', function() {
+          if (rememberCheckbox.checked) {
+            localStorage.setItem('autopilot_remember_email', emailInput.value);
+            localStorage.setItem('autopilot_remember_password', passwordInput.value);
+            localStorage.setItem('autopilot_remember_me', 'true');
+          } else {
+            // Clear saved credentials if checkbox is unchecked
+            localStorage.removeItem('autopilot_remember_email');
+            localStorage.removeItem('autopilot_remember_password');
+            localStorage.removeItem('autopilot_remember_me');
+          }
+        });
+      }
+      
+      // Clear credentials when checkbox is unchecked
+      if (rememberCheckbox) {
+        rememberCheckbox.addEventListener('change', function() {
+          if (!this.checked) {
+            localStorage.removeItem('autopilot_remember_email');
+            localStorage.removeItem('autopilot_remember_password');
+            localStorage.removeItem('autopilot_remember_me');
+          }
+        });
+      }
+    });
+
     // Typewriter effect
     document.addEventListener('DOMContentLoaded', function() {
       const text1 = 'Welcome to AutoPilot';

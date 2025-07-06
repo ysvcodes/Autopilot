@@ -33,6 +33,9 @@ try {
     $user_id = $pdo->lastInsertId();
     $stmt = $pdo->prepare('INSERT INTO agency_users (agency_id, user_id) VALUES (?, ?)');
     $stmt->execute([$agency_id, $user_id]);
+    // Log user assignment to agency
+    $stmt = $pdo->prepare('INSERT INTO activity_log (agency_id, user_id, type, description) VALUES (?, ?, ?, ?)');
+    $stmt->execute([$agency_id, $user_id, 'user_assigned', "User $first_name $last_name ($email) assigned to agency"]);
     $pdo->commit();
     echo json_encode(['success' => true, 'message' => 'User account created successfully!']);
 } catch (Exception $e) {

@@ -23,7 +23,6 @@ if (isset($_GET['offset']) && is_numeric($_GET['offset'])) {
     $offset = (int)$_GET['offset'];
 }
 
-// Fetch users with agency name and count of active automations
 $users = [];
 $total_users = 0;
 try {
