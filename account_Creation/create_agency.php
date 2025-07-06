@@ -28,12 +28,14 @@ try {
     }
     $password_hash = password_hash($password, PASSWORD_DEFAULT);
     $pdo->beginTransaction();
+    // 1. Insert into agencies table
+    $stmt = $pdo->prepare('INSERT INTO agencies (agency_name) VALUES (?)');
+    $stmt->execute([$agency_name]);
+    $agency_id = $pdo->lastInsertId();
+    // 2. Insert into agency_admins with the new agency_id
     $stmt = $pdo->prepare('INSERT INTO agency_admins (agency_id, agency_name, first_name, last_name, email, password_hash, role, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, "adminagency", NOW(), NOW())');
-    $stmt->execute([0, $agency_name, $first_name, $last_name, $email, $password_hash]);
+    $stmt->execute([$agency_id, $agency_name, $first_name, $last_name, $email, $password_hash]);
     $admin_id = $pdo->lastInsertId();
-    // Set agency_id = id
-    $stmt = $pdo->prepare('UPDATE agency_admins SET agency_id = ? WHERE id = ?');
-    $stmt->execute([$admin_id, $admin_id]);
     $pdo->commit();
     echo json_encode(['success' => true, 'message' => 'Agency account created successfully!']);
 } catch (Exception $e) {
