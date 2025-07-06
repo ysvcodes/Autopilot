@@ -345,7 +345,7 @@ try {
                             Manage Automations
                         </a>
                         <hr style="margin:0 18px;border:none;border-top:1px solid #e3e8f0;" />
-                        <a href="#" id="edit-profile-link" class="card-row-hover" style="display:flex;align-items:center;gap:16px;padding:18px 22px 18px 18px;text-decoration:none;color:#222;font-weight:700;font-size:1.08em;transition:box-shadow 0.18s, transform 0.18s;border-radius:12px;margin:6px 10px 0 10px;">
+                        <a href="users.php" id="edit-profile-link" class="card-row-hover" style="display:flex;align-items:center;gap:16px;padding:18px 22px 18px 18px;text-decoration:none;color:#222;font-weight:700;font-size:1.08em;transition:box-shadow 0.18s, transform 0.18s;border-radius:12px;margin:6px 10px 0 10px;">
                             <span style="display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;background:#0a1a2f;border-radius:12px;">
                                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 8-4 8-4s8 0 8 4"/></svg>
                             </span>

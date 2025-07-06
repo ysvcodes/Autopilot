@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/logs/logout_handler.php';
 session_start();
 if (!isset($_SESSION['agency_id'])) {
     header('Location: index.php');
@@ -172,6 +173,7 @@ $signed_clients = $stmt->fetchColumn();
             height: 100vh;
             overflow-y: auto;
             color: #fff;
+            overflow: hidden !important;
         }
         .dashboard-cards {
             display: flex;
@@ -580,12 +582,12 @@ $signed_clients = $stmt->fetchColumn();
             <img src="assets/logo-light.png" alt="Logo" style="width: 235px; height: 235px; object-fit: contain; display: block; margin-top:0; padding-top:0;" />
         </a>
         <nav>
-            <a href="#" class="active"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7ecbff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="4" fill="none"/><path d="M9 9h6v6H9z"/></svg>Agency Overview</a>
-            <a href="#"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7ecbff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="7" width="16" height="10" rx="4"/><circle cx="8.5" cy="12" r="1"/><circle cx="15.5" cy="12" r="1"/><path d="M10 16h4"/><line x1="12" y1="3" x2="12" y2="7"/></svg>Automations</a>
-            <a href="#"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7ecbff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1.5"/><circle cx="20" cy="21" r="1.5"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>My Store</a>
-            <a href="#"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7ecbff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 8-4 8-4s8 0 8 4"/></svg>Clients</a>
-            <a href="#"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7ecbff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 8h8M8 12h8M8 16h4"/></svg>Logs and Errors</a>
-            <a href="#"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7ecbff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Inbox</a>
+            <a href="agencyspanel.php" class="active"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7ecbff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="4" fill="none"/><path d="M9 9h6v6H9z"/></svg>Agency Overview</a>
+            <a href="automations.php"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7ecbff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="7" width="16" height="10" rx="4"/><circle cx="8.5" cy="12" r="1"/><circle cx="15.5" cy="12" r="1"/><path d="M10 16h4"/><line x1="12" y1="3" x2="12" y2="7"/></svg>Automations</a>
+            <a href="store.php"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7ecbff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1.5"/><circle cx="20" cy="21" r="1.5"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>My Store</a>
+            <a href="clients.php"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7ecbff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 8-4 8-4s8 0 8 4"/></svg>Clients</a>
+            <a href="logs.php"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7ecbff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 8h8M8 12h8M8 16h4"/></svg>Logs and Errors</a>
+            <a href="inbox.php"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7ecbff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Inbox</a>
             <button class="signout" id="sidebar-signout-btn">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#e3342f" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
@@ -597,10 +599,14 @@ $signed_clients = $stmt->fetchColumn();
         </nav>
     </aside>
     <main class="main-content">
-        <h1>Welcome to the Agency Panel</h1>
-        <div class="welcome">Logged in as <span style="color:#178fff;font-weight:900;"><?= htmlspecialchars($agency_name) ?></span></div>
-        <div class="subtitle-agency">This is the Agency Page where you can link your <b>automations</b>, manage your <b>clients</b>, and see <b>results</b>.</div>
-        <div class="main-content">
+        <h1 style="font-size:2.2em;font-weight:900;color:#fff;margin-bottom:0;">Welcome to the Agency Panel</h1>
+        <div class="welcome" style="font-size:1.08em;font-weight:700;margin-bottom:4px;margin-top:2px;color:#fff;">
+            Logged in as <span style="color:#178fff;font-weight:900;"><?= htmlspecialchars($agency_name) ?></span>
+            <span style="margin-left:6px;">      |      <span style="font-style:italic;">Agency Code:</span> <span style="font-weight:900;color:#7ecbff;font-style:italic;"><?= htmlspecialchars($agency_id) ?></span></span>
+            <span style="margin-left:18px;opacity:0.7;font-weight:600;">Share Your Agency Code with New Clients when they Sign up.</span>
+        </div>
+        <div class="subtitle-agency" style="color:#4a5a6a;font-size:1.08em;font-weight:600;margin-bottom:2px;">This is the Agency Page where you can link your <b>automations</b>, manage your <b>clients</b>, and see <b>results</b>.</div>
+        <div style="margin-left:2px;max-width:100vw;">
             <div class="bell-notification">
                 <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#7ecbff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M18 16v-5a6 6 0 1 0-12 0v5l-1.5 2h15z"/>
@@ -754,7 +760,7 @@ $signed_clients = $stmt->fetchColumn();
     </div>
   </div>
 </div>
-<form id="logout-form" method="POST" action="logs/logout_handler.php" style="display:none;"><input type="hidden" name="logout" value="1" /></form>
+<form id="logout-form" method="POST" style="display:none;"><input type="hidden" name="logout" value="1" /></form>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
   var sidebarSignoutBtn = document.getElementById('sidebar-signout-btn');

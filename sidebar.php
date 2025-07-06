@@ -19,7 +19,7 @@ if (!isset($active_page)) $active_page = '';
             </span>
             Approval
         </a>
-        <a href="#"<?php if ($active_page === 'enquiries') echo ' class="active"'; ?>>
+        <a href="enquiries.php"<?php if ($active_page === 'enquiries') echo ' class="active"'; ?>>
             <span style="display:inline-flex;align-items:center;">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7ecbff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><polyline points="3 7 12 13 21 7"/></svg>
             </span>
@@ -40,19 +40,19 @@ if (!isset($active_page)) $active_page = '';
             </span>
             Users
         </a>
-        <a href="#"<?php if ($active_page === 'logs') echo ' class="active"'; ?>>
+        <a href="logs.php"<?php if ($active_page === 'logs') echo ' class="active"'; ?>>
             <span style="display:inline-flex;align-items:center;">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7ecbff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 8h8M8 12h8M8 16h4"/></svg>
             </span>
             Logs and Errors
         </a>
-        <a href="#"<?php if ($active_page === 'settings') echo ' class="active"'; ?>>
+        <a href="settings.php"<?php if ($active_page === 'settings') echo ' class="active"'; ?>>
             <span style="display:inline-flex;align-items:center;">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7ecbff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 15.5v-7"/><path d="M8.5 12h7"/><circle cx="12" cy="12" r="10"/></svg>
             </span>
             System Settings
         </a>
-        <a href="#"<?php if ($active_page === 'flags') echo ' class="active"'; ?>>
+        <a href="flags.php"<?php if ($active_page === 'flags') echo ' class="active"'; ?>>
             <span style="display:inline-flex;align-items:center;">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7ecbff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M4 20V4"/>
@@ -61,13 +61,13 @@ if (!isset($active_page)) $active_page = '';
             </span>
             Flags and Reports
         </a>
-        <a href="#"<?php if ($active_page === 'activity') echo ' class="active"'; ?>>
+        <a href="activity.php"<?php if ($active_page === 'activity') echo ' class="active"'; ?>>
             <span style="display:inline-flex;align-items:center;">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7ecbff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
             </span>
             Activity Feed
         </a>
-        <a href="#"<?php if ($active_page === 'store') echo ' class="active"'; ?>>
+        <a href="store.php"<?php if ($active_page === 'store') echo ' class="active"'; ?>>
             <span style="display:inline-flex;align-items:center;">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7ecbff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
             </span>
