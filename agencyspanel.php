@@ -9,6 +9,8 @@ $agency_id = $_SESSION['agency_id'];
 $agency_name = isset($_SESSION['agency_name']) ? $_SESSION['agency_name'] : 'Agency';
 require_once 'database_connection/connection.php';
 
+$active_page = 'agency_overview';
+
 // Stat Card: Active Automations
 $stmt = $pdo->prepare("SELECT COUNT(*) FROM automations WHERE agency_id = ? AND status = 'active'");
 $stmt->execute([$agency_id]);
@@ -19,8 +21,8 @@ $stmt = $pdo->prepare("SELECT COUNT(*) FROM automations WHERE agency_id = ?");
 $stmt->execute([$agency_id]);
 $total_automations = $stmt->fetchColumn();
 
-// Recent Activity: 10 most recent events for this agency from activity_log
-$stmt = $pdo->prepare("SELECT type, description, created_at FROM activity_log WHERE agency_id = ? ORDER BY created_at DESC LIMIT 10");
+// Recent Activity: 3 most recent events for this agency from activity_log
+$stmt = $pdo->prepare("SELECT type, description, created_at FROM activity_log WHERE agency_id = ? ORDER BY created_at DESC LIMIT 3");
 $stmt->execute([$agency_id]);
 $recent_activity = $stmt->fetchAll();
 
@@ -90,7 +92,7 @@ $signed_clients = $stmt->fetchColumn();
 <head>
     <meta charset="UTF-8">
     <title>Agency Panel</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Montserrat:wght@600;800&display=swap" rel="stylesheet">
     <style>
         html, body {
             height: 100vh;
@@ -239,7 +241,7 @@ $signed_clients = $stmt->fetchColumn();
             margin-top: 8px;
         }
         .cta-banner {
-            background: linear-gradient(90deg, #178fff 0%, #1397d4 100%);
+            background: linear-gradient(90deg, #0a1833 0%, #178fff 100%);
             color: #fff;
             border-radius: 14px;
             padding: 14px 18px;
@@ -249,7 +251,7 @@ $signed_clients = $stmt->fetchColumn();
             margin-bottom: 18px;
             font-size: 0.98em;
             font-weight: 700;
-            box-shadow: 0 2px 12px #178fff33;
+            box-shadow: 0 0 24px 4px #178fff66;
         }
         .cta-banner .cta-btn {
             background: #fff;
@@ -352,20 +354,22 @@ $signed_clients = $stmt->fetchColumn();
             letter-spacing: 0.01em;
         }
         .cta-btn {
-            background: #fff;
-            color: #178fff;
-            font-weight: 800;
+            background: linear-gradient(90deg, #178fff 0%, #0a1833 100%);
+            color: #ffd166;
+            font-family: 'Montserrat', 'Inter', Arial, sans-serif;
+            font-weight: 600;
             border: none;
             border-radius: 8px;
-            padding: 8px 18px;
-            font-size: 1em;
+            padding: 12px 28px;
+            font-size: 1.1em;
             cursor: pointer;
-            transition: background 0.18s, color 0.18s;
+            transition: background 0.18s, color 0.18s, box-shadow 0.18s;
             box-shadow: 0 2px 8px #178fff22;
         }
         .cta-btn:hover {
-            background: #14213d;
+            background: #178fff;
             color: #fff;
+            box-shadow: 0 0 16px 4px #178fff99;
         }
         .dashboard-row {
             display: flex;
@@ -577,27 +581,7 @@ $signed_clients = $stmt->fetchColumn();
 </head>
 <body>
 <div class="layout">
-    <aside class="sidebar">
-        <a href="agencyspanel.php" class="logo" style="display: flex; align-items: center; justify-content: center; width: 100%; margin-bottom: 0; margin-top:0; padding-top:0;">
-            <img src="assets/logo-light.png" alt="Logo" style="width: 235px; height: 235px; object-fit: contain; display: block; margin-top:0; padding-top:0;" />
-        </a>
-        <nav>
-            <a href="agencyspanel.php" class="active"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7ecbff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="4" fill="none"/><path d="M9 9h6v6H9z"/></svg>Agency Overview</a>
-            <a href="automations.php"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7ecbff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="7" width="16" height="10" rx="4"/><circle cx="8.5" cy="12" r="1"/><circle cx="15.5" cy="12" r="1"/><path d="M10 16h4"/><line x1="12" y1="3" x2="12" y2="7"/></svg>Automations</a>
-            <a href="store.php"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7ecbff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1.5"/><circle cx="20" cy="21" r="1.5"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>My Store</a>
-            <a href="clients.php"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7ecbff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 8-4 8-4s8 0 8 4"/></svg>Clients</a>
-            <a href="logs.php"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7ecbff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 8h8M8 12h8M8 16h4"/></svg>Logs and Errors</a>
-            <a href="inbox.php"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7ecbff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Inbox</a>
-            <button class="signout" id="sidebar-signout-btn">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#e3342f" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-                    <polyline points="16 17 21 12 16 7"/>
-                    <line x1="21" y1="12" x2="9" y2="12"/>
-                </svg>
-                Sign Out
-            </button>
-        </nav>
-    </aside>
+    <?php $active_page = 'agency_overview'; include 'agency_sidebar.php'; ?>
     <main class="main-content">
         <h1 style="font-size:2.2em;font-weight:900;color:#fff;margin-bottom:0;">Welcome to the Agency Panel</h1>
         <div class="welcome" style="font-size:1.08em;font-weight:700;margin-bottom:4px;margin-top:2px;color:#fff;">
@@ -605,7 +589,7 @@ $signed_clients = $stmt->fetchColumn();
             <span style="margin-left:6px;">      |      <span style="font-style:italic;">Agency Code:</span> <span style="font-weight:900;color:#7ecbff;font-style:italic;"><?= htmlspecialchars($agency_id) ?></span></span>
             <span style="margin-left:18px;opacity:0.7;font-weight:600;">Share Your Agency Code with New Clients when they Sign up.</span>
         </div>
-        <div class="subtitle-agency" style="color:#4a5a6a;font-size:1.08em;font-weight:600;margin-bottom:2px;">This is the Agency Page where you can link your <b>automations</b>, manage your <b>clients</b>, and see <b>results</b>.</div>
+        <div class="subtitle-agency" style="color:#4a5a6a;font-size:1.08em;font-weight:600;margin-bottom:18px;">This is the Agency Page where you can link your <b>automations</b>, manage your <b>clients</b>, and see <b>results</b>.</div>
         <div style="margin-left:2px;max-width:100vw;">
             <div class="bell-notification">
                 <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#7ecbff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -652,7 +636,7 @@ $signed_clients = $stmt->fetchColumn();
                     <div class="icon" style="background:#16b1c9;padding:8px 12px;border-radius:8px;"><svg width="24" height="24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
                 </div>
             </div>
-            <div class="cta-banner" style="background: linear-gradient(90deg, #178fff 0%, #1397d4 100%); color:#fff;">
+            <div class="cta-banner" style="background: linear-gradient(90deg, #0a1833 0%, #178fff 100%); color:#fff; box-shadow: 0 0 24px 4px #178fff66;">
                 <div>
                     <div style="font-size:1.25em;font-weight:800;">Ready to automate more?</div>
                     <div style="font-size:1em;font-weight:400;">Link a new automation to Put on your store and offer your clients!</div>
@@ -725,14 +709,16 @@ $signed_clients = $stmt->fetchColumn();
                     <?php else: ?>
                         <?php foreach ($recent_activity as $row): ?>
                             <?php
-                            // Color coding: green for user_assigned, user_edited, automation_created; orange for user_edited, automation_updated; red for user_removed, error, automation_deleted
+                            // Color coding: green for user_assigned, automation_created; blue for user_edited, automation_updated; red for user_removed, error, automation_deleted
                             $type = $row['type'];
-                            if ($type === 'error' || $type === 'user_removed' || $type === 'automation_deleted') {
+                            if ($type === 'error' || $type === 'user_removed' || $type === 'automation_deleted' || $type === 'automation_deactivated') {
                                 $dot = '#e3342f'; // red
                             } elseif ($type === 'user_edited' || $type === 'automation_updated') {
-                                $dot = '#ff9900'; // orange
-                            } else {
+                                $dot = '#178fff'; // blue
+                            } elseif ($type === 'automation_activated' || $type === 'user_assigned' || $type === 'automation_created') {
                                 $dot = '#1ec97e'; // green
+                            } else {
+                                $dot = '#ffd166'; // yellow/other
                             }
                             ?>
                             <li>
