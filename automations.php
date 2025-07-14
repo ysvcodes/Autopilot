@@ -1,4 +1,5 @@
 <?php
+$active_page = 'automations';
 require_once __DIR__ . '/logs/logout_handler.php';
 session_start();
 if (!isset($_SESSION['agency_id'])) {
@@ -12,7 +13,7 @@ require_once 'database_connection/connection.php';
 // Fetch automations for this agency
 $automations = [];
 try {
-    $stmt = $pdo->prepare('SELECT id, name, description, automation_notes, type, pricing, pricing_model, is_trial_available, run_limit, scheduling, status, created_at FROM automations WHERE agency_id = ? ORDER BY created_at DESC');
+    $stmt = $pdo->prepare('SELECT id, name, description, automation_notes, type, pricing, pricing_model, is_trial_available, run_limit, scheduling, status, created_at, tags, api FROM automations WHERE agency_id = ? ORDER BY created_at DESC');
     $stmt->execute([$agency_id]);
     while ($row = $stmt->fetch()) {
         $automations[] = $row;
@@ -21,7 +22,8 @@ try {
     $automations = [];
 }
 
-// Fetch agency clients for multi-select
+// Fetch 
+// lients for multi-select
 $agency_clients = [];
 try {
     $stmt = $pdo->prepare('SELECT id, first_name, last_name, email FROM users WHERE agency_id = ?');
@@ -153,6 +155,12 @@ try {
             cursor: default;
             transition: all 0.2s ease-in-out;
             overflow: visible !important;
+            width: 680px !important; /* reduced width */
+            min-height: 200px !important; /* increased height */
+            height: 100% !important;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
         }
         .automation-card:hover {
             box-shadow: 0 0 0 4px #178fff55, 0 4px 24px #178fff33 !important;
@@ -268,7 +276,8 @@ try {
         .create-automation-form {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 10px 34px;
+            gap: 10px 18px;
+            column-gap: 28px;
             align-items: flex-start;
         }
         .create-automation-form label {
@@ -311,14 +320,16 @@ try {
             min-height: 60px;
             resize: vertical;
         }
+        .create-automation-form .tags-input-container {
+            position: relative;
+        }
         .create-automation-form .tag-list {
             display: flex;
             gap: 8px;
-            flex-wrap: nowrap;
+            flex-wrap: wrap;
             margin-bottom: 6px;
             margin-top: 8px;
             min-height: 32px;
-            max-height: 32px;
             align-items: center;
             overflow-x: auto;
         }
@@ -527,31 +538,53 @@ try {
           0% { opacity: 1; transform: translateY(0) scale(1); }
           100% { opacity: 0; transform: translateY(60px) scale(0.98); }
         }
+        @keyframes fadeInUp {
+          from { opacity: 0; transform: translateY(40px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fadeOutUp {
+          from { opacity: 1; transform: translateY(0); }
+          to { opacity: 0; transform: translateY(-40px); }
+        }
+        #edit-modal {
+          opacity: 0;
+          transform: translateY(40px);
+          transition: none;
+        }
+        #edit-modal.show {
+          animation: fadeInUp 0.35s cubic-bezier(.4,1.7,.7,1) forwards;
+        }
+        #edit-modal.hide {
+          animation: fadeOutUp 0.35s cubic-bezier(.4,1.7,.7,1) forwards;
+        }
+        .users-btn { background:#178fff !important; color:#fff !important; border:1.5px solid #178fff !important; }
+        .users-btn:hover { background:#7ecbff !important; color:#14213d !important; border-color:#7ecbff !important; }
+        @keyframes fadeInUpModal {
+          from { opacity: 0; transform: translateY(40px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fadeOutUpModal {
+          from { opacity: 1; transform: translateY(0); }
+          to { opacity: 0; transform: translateY(-40px); }
+        }
+        #assign-users-modal.fade-in {
+          animation: fadeInUpModal 0.35s cubic-bezier(0.4,1.4,0.6,1) forwards;
+        }
+        #assign-users-modal.fade-out {
+          animation: fadeOutUpModal 0.35s cubic-bezier(0.4,1.4,0.6,1) forwards;
+        }
+        .automation-tag-bubble:hover {
+          background: #178fff !important;
+          color: #fff !important;
+        }
+        .automation-cards-list, #automation-cards-list, .main-content, body {
+          overflow-x: hidden !important;
+        }
     </style>
 </head>
 <body>
 <div class="layout">
-    <aside class="sidebar">
-        <a href="agencyspanel.php" class="logo" style="display: flex; align-items: center; justify-content: center; width: 100%; margin-bottom: 0; margin-top:0; padding-top:0;">
-            <img src="assets/logo-light.png" alt="Logo" style="width: 235px; height: 235px; object-fit: contain; display: block; margin-top:0; padding-top:0;" />
-        </a>
-        <nav>
-            <a href="agencyspanel.php"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7ecbff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="4" fill="none"/><path d="M9 9h6v6H9z"/></svg>Agency Overview</a>
-            <a href="automations.php" class="active"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7ecbff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="7" width="16" height="10" rx="4"/><circle cx="8.5" cy="12" r="1"/><circle cx="15.5" cy="12" r="1"/><path d="M10 16h4"/><line x1="12" y1="3" x2="12" y2="7"/></svg>Automations</a>
-            <a href="store.php"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7ecbff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1.5"/><circle cx="20" cy="21" r="1.5"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>My Store</a>
-            <a href="clients.php"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7ecbff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 8-4 8-4s8 0 8 4"/></svg>Clients</a>
-            <a href="logs.php"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7ecbff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 8h8M8 12h8M8 16h4"/></svg>Logs and Errors</a>
-            <a href="inbox.php"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7ecbff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Inbox</a>
-            <button class="signout" id="sidebar-signout-btn">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#e3342f" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-                    <polyline points="16 17 21 12 16 7"/>
-                    <line x1="21" y1="12" x2="9" y2="12"/>
-                </svg>
-                Sign Out
-            </button>
-        </nav>
-    </aside>
+    <?php $active_page = 'automations'; include 'agency_sidebar.php'; ?>
     <main class="main-content" style="display:flex;gap:96px;align-items:flex-start;">
         <div style="flex:1;min-width:0;">
             <h1 style="font-size:2.2em;font-weight:900;color:#fff;margin-bottom:0;">Automations</h1>
@@ -569,13 +602,13 @@ try {
                     <input type="text" placeholder="Search automations..." style="width:100%;padding:10px 42px 10px 14px;border-radius:10px;border:1.5px solid #22325a;background:#19253a;color:#fff;font-size:1em;transition:box-shadow 0.18s, border 0.18s;outline:none;" onfocus="this.style.boxShadow='0 0 0 3px #178fff55';this.style.borderColor='#178fff';" onblur="this.style.boxShadow='none';this.style.borderColor='#22325a';">
                     <svg style="position:absolute;right:16px;top:50%;transform:translateY(-50%);pointer-events:none;z-index:2;background:none;" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7ecbff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                 </div>
-                <div style="background:#1a2332;border-radius:14px;padding:0 0 0 0;margin-top:12px;width:100%;box-shadow:0 2px 8px #0002;border:1.5px solid #22325a;max-height:682px;min-height:622px;overflow-y:auto;display:flex;flex-direction:column;gap:0;align-items:center;justify-content:center;">
+                <div style="background:#1a2332;border-radius:14px;padding:0 0 0 0;margin-top:12px;width:100%;box-shadow:0 2px 8px #0002;border:1.5px solid #22325a;max-height:682px;min-height:622px;overflow-y:auto;display:flex;flex-direction:column;gap:0;align-items:center;justify-content:flex-start;">
                     <?php if (empty($automations)): ?>
                         <div style="color:#4a5a6a;font-size:1.08em;font-weight:600;min-height:180px;display:flex;align-items:center;justify-content:center;">No Automations</div>
                     <?php else: ?>
-                        <div style="display:flex;flex-direction:column;gap:8px;width:100%;padding:16px;">
+                        <div id="automation-cards-list" style="display:flex;flex-direction:column;gap:8px;width:100%;padding:16px;align-items:center;">
                             <?php foreach ($automations as $automation): ?>
-                                <div class="automation-card" data-status="<?= htmlspecialchars($automation['status']) ?>" style="background:#19253a;border:1.5px solid #22325a;border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px;transition:all 0.2s ease-in-out;">
+                                <div class="automation-card" data-id="<?= htmlspecialchars($automation['id']) ?>" data-status="<?= htmlspecialchars($automation['status']) ?>" data-pricing="<?= htmlspecialchars($automation['pricing']) ?>" data-pricing-model="<?= htmlspecialchars($automation['pricing_model']) ?>" data-run-limit="<?= htmlspecialchars($automation['run_limit']) ?>" data-api="<?= htmlspecialchars($automation['api'] ?? '') ?>" style="background:#19253a;border:1.5px solid #22325a;border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px;transition:all 0.2s ease-in-out;">
                                     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
                                         <div style="flex:1;">
                                             <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
@@ -611,20 +644,36 @@ try {
                                                     <div style="color:#b6c6d7;font-size:0.85em;line-height:1.4;font-style:italic;"><?= htmlspecialchars($automation['automation_notes']) ?></div>
                                                 </div>
                                             <?php endif; ?>
+                                            <?php if (!empty($automation['tags'])): ?>
+                                                <div style="color:#7ecbff;font-weight:700;font-size:0.98em;margin:10px 0 2px 0;">Automation Tags:</div>
+                                                <div class="automation-tags-list" style="margin:0 0 0 0;display:flex;gap:8px;flex-wrap:wrap;">
+                                                    <?php foreach (explode(',', $automation['tags']) as $tag): ?>
+                                                        <span class="automation-tag-bubble" style="background:#19253a;color:#7ecbff;padding:2px 10px;border-radius:12px;font-size:0.95em;font-weight:700;display:inline-block;transition:background 0.18s, color 0.18s;cursor:pointer;border:1.5px solid #7ecbff;">#<?= htmlspecialchars(trim($tag)) ?></span>
+                                                    <?php endforeach; ?>
                                         </div>
+                                            <?php endif; ?>
+                                        </div>
+                                        <div style="display:flex;gap:6px;flex-direction:column;align-items:flex-end;">
                                         <div style="display:flex;gap:6px;">
                                             <button class="edit-btn" style="background:#19253a;color:#ffb347;border:1.5px solid #ffb347;border-radius:8px;padding:6px 12px;font-size:0.8em;font-weight:700;cursor:pointer;transition:background 0.18s, color 0.18s;">Edit</button>
                                             <button class="delete-btn" style="background:#19253a;color:#e3342f;border:1.5px solid #e3342f;border-radius:8px;padding:6px 12px;font-size:0.8em;font-weight:700;cursor:pointer;transition:background 0.18s, color 0.18s;">Delete</button>
+                                          </div>
+                                          <button class="users-btn" style="background:#178fff;color:#fff;border:1.5px solid #178fff;border-radius:8px;padding:6px 12px;font-size:0.8em;font-weight:700;cursor:pointer;transition:background 0.18s, color 0.18s;margin-top:6px;width:100%;max-width:100%;display:block;">Users</button>
                                         </div>
                                     </div>
                                     <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;">
                                         <div style="display:flex;align-items:center;gap:12px;">
                                             <div style="color:#7ecbff;font-size:0.85em;font-weight:600;">Created: <?= date('M j, Y', strtotime($automation['created_at'])) ?></div>
                                             <div style="color:#ffd166;font-size:0.85em;font-weight:600;">Schedule: <?= ucfirst($automation['scheduling']) ?></div>
-                                            <button class="active-inactive-btn <?= $automation['status'] === 'active' ? 'active' : 'inactive' ?>" style="background:linear-gradient(90deg,#178fff 0%,#7ecbff 100%);color:#fff;border:none;border-radius:8px;padding:4px 10px;font-size:0.8em;font-weight:700;cursor:pointer;transition:opacity 0.18s;">
+                                            <button class="active-inactive-btn <?= $automation['status'] === 'active' ? 'active' : 'inactive' ?>" style="background:linear-gradient(90deg,#178fff 0%,#7ecbff 100%);color:#fff;border:none;border-radius:8px;padding:4px 10px;font-size:0.8em;font-weight:700;cursor:pointer;transition:opacity 0.18s;display:flex;align-items:center;gap:6px;">
                                                 <span class="active-inactive-label"><?= ucfirst($automation['status']) ?></span>
-                                                <svg class="play-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5,3 19,12 5,21"/></svg>
-                                                <svg class="pause-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+                                                <svg class="play-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:<?= $automation['status'] === 'active' ? 'inline' : 'none' ?>;">
+                                                    <polygon points="5,3 19,12 5,21" fill="#fff" />
+                                                </svg>
+                                                <svg class="pause-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:<?= $automation['status'] === 'inactive' ? 'inline' : 'none' ?>;">
+                                                    <rect x="6" y="4" width="4" height="16" rx="2" fill="#fff"/>
+                                                    <rect x="14" y="4" width="4" height="16" rx="2" fill="#fff"/>
+                                                </svg>
                                             </button>
                                         </div>
                                     </div>
@@ -646,6 +695,7 @@ try {
             if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_automation'])) {
                 $name = trim($_POST['name'] ?? '');
                 $api = trim($_POST['api'] ?? '');
+                $api_placeholder = 'https://your-n8n-instance.com/webhook/property-leads';
                 $description = trim($_POST['description'] ?? '');
                 $automation_notes = trim($_POST['automation_notes'] ?? '');
                 $type = trim($_POST['type'] ?? '');
@@ -658,20 +708,30 @@ try {
                 $status = isset($_POST['status']) ? 'active' : 'inactive';
                 $assigned_clients = $_POST['assigned_clients'] ?? [];
                 if ($name === '') $create_errors[] = 'Name is required.';
-                if ($api === '') $create_errors[] = 'API is required.';
+                if ($api === '' || $api === $api_placeholder) $create_errors[] = 'API is required and must be unique.';
                 if ($pricing === '' || !is_numeric(str_replace([',','£','$'], '', $pricing))) $create_errors[] = 'Pricing must be a number.';
                 if (empty($assigned_clients)) $create_errors[] = 'Please assign at least one client.';
                 if (empty($create_errors)) {
                     $pricing_num = floatval(str_replace([',','£','$'], '', $pricing));
                     try {
-                        $stmt = $pdo->prepare('INSERT INTO automations (agency_id, admin_id, name, api, description, automation_notes, type, pricing, pricing_model, is_trial_available, run_limit, tags, scheduling, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
-                        $stmt->execute([$agency_id, $_SESSION['admin_id'] ?? 1, $name, $api, $description, $automation_notes, $type, $pricing_num, $pricing_model, $is_trial_available, $run_limit, $tags, $scheduling, $status]);
-                        $automation_id = $pdo->lastInsertId();
-                        foreach ($assigned_clients as $client_id) {
-                            $stmt2 = $pdo->prepare('INSERT INTO automation_users (automation_id, user_id) VALUES (?, ?)');
-                            $stmt2->execute([$automation_id, $client_id]);
+                        // Check for duplicate API before insert
+                        $stmt = $pdo->prepare('SELECT COUNT(*) FROM automations WHERE api = ?');
+                        $stmt->execute([$api]);
+                        if ($stmt->fetchColumn() > 0) {
+                            $create_errors[] = 'API must be unique. This API is already used by another automation.';
+                        } else {
+                            $stmt = $pdo->prepare('INSERT INTO automations (agency_id, admin_id, name, api, description, automation_notes, type, pricing, pricing_model, is_trial_available, run_limit, tags, scheduling, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+                            $stmt->execute([$agency_id, $_SESSION['admin_id'] ?? 1, $name, $api, $description, $automation_notes, $type, $pricing_num, $pricing_model, $is_trial_available, $run_limit, $tags, $scheduling, $status]);
+                            $automation_id = $pdo->lastInsertId();
+                            foreach ($assigned_clients as $client_id) {
+                                $stmt2 = $pdo->prepare('INSERT INTO automation_users (automation_id, user_id) VALUES (?, ?)');
+                                $stmt2->execute([$automation_id, $client_id]);
+                            }
+                            // Log automation creation activity
+                            $stmt3 = $pdo->prepare('INSERT INTO activity_log (agency_id, admin_id, type, description) VALUES (?, ?, ?, ?)');
+                            $stmt3->execute([$agency_id, $_SESSION['admin_id'] ?? 1, 'automation_created', "Automation '$name' created successfully"]);
+                            $create_success = true;
                         }
-                        $create_success = true;
                     } catch (Exception $e) {
                         $create_errors[] = 'Error creating automation: ' . $e->getMessage();
                     }
@@ -747,7 +807,8 @@ try {
                 <label>Tags
                     <div class="tags-input-container">
                         <input type="text" id="tag-input" placeholder="Add tags (max 3)" />
-                        <div id="tags-display"></div>
+                        <div id="tag-list" class="tag-list"></div>
+                        <input type="hidden" name="tags" id="tags-hidden" />
                     </div>
                 </label>
                 <label>Assigned Clients
@@ -769,9 +830,12 @@ try {
             </form>
             <script>
             // Tag input to pill display with add/remove, max 3 tags, pills below input and '×' on hover
-            const tagsInput = document.getElementById('tags-input');
+            const tagsInput = document.getElementById('tag-input');
             const tagList = document.getElementById('tag-list');
+            const tagsHidden = document.getElementById('tags-hidden');
             let tagsArr = [];
+            
+            if (tagsInput && tagList && tagsHidden) {
             tagsInput.addEventListener('keydown', function(e) {
                 if ((e.key === 'Enter' || e.key === ',') && tagsArr.length < 3) {
                     e.preventDefault();
@@ -785,6 +849,7 @@ try {
                     e.preventDefault();
                 }
             });
+                
             function renderTags() {
                 tagList.innerHTML = '';
                 tagsArr.forEach((tag, idx) => {
@@ -803,10 +868,18 @@ try {
                     pill.appendChild(remove);
                     tagList.appendChild(pill);
                 });
-                document.getElementById('tags-input').value = tagsArr.join(', ');
+                    // Update hidden input with tags
+                    tagsHidden.value = tagsArr.join(', ');
                 // Disable input if 3 tags
                 tagsInput.disabled = tagsArr.length >= 3;
+                    if (tagsArr.length >= 3) {
+                        tagsInput.placeholder = 'Maximum 3 tags reached';
+                    } else {
+                        tagsInput.placeholder = 'Add tags (max 3)';
             }
+                }
+            }
+            
             // Format pricing input as 1200.00 on blur
             const pricingInput = document.getElementById('pricing-input');
             if (pricingInput) {
@@ -883,9 +956,29 @@ document.addEventListener('DOMContentLoaded', function() {
   deleteBtns.forEach(function(btn) {
     btn.addEventListener('click', function(e) {
       e.preventDefault();
-      // For now, use static values. Replace with dynamic values as needed.
-      deleteAutomationName.textContent = 'Lead Generation Bot';
-      deleteAssignedUsers.textContent = 'John Doe, Jane Smith';
+      const card = btn.closest('.automation-card');
+      const automationId = card.getAttribute('data-id');
+      const automationName = card.querySelector('h3').textContent.trim();
+      // Fetch assigned users via AJAX
+      fetch('agency_handler/fetch_assigned_users.php?automation_id=' + encodeURIComponent(automationId))
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            if (data.users.length > 0) {
+              deleteAssignedUsers.textContent = data.users.map(u => u.name + ' (' + u.email + ')').join(', ');
+            } else {
+              deleteAssignedUsers.textContent = 'No assigned users';
+            }
+          } else {
+            deleteAssignedUsers.textContent = 'Error fetching users';
+          }
+        })
+        .catch(() => {
+          deleteAssignedUsers.textContent = 'Error fetching users';
+        });
+      // Store automation ID for deletion
+      deleteModalBg.setAttribute('data-automation-id', automationId);
+      deleteAutomationName.textContent = automationName;
       deleteModalBg.style.display = 'flex';
     });
   });
@@ -898,8 +991,36 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
   confirmDelete.addEventListener('click', function(e) {
-    // Add deletion logic here
-    deleteModalBg.style.display = 'none';
+    const automationId = deleteModalBg.getAttribute('data-automation-id');
+    if (!automationId) {
+      alert('Error: Automation ID not found');
+      return;
+    }
+    
+    // Send delete request
+    const formData = new FormData();
+    formData.append('automation_id', automationId);
+    
+    fetch('agency_handler/delete_automation.php', {
+      method: 'POST',
+      body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        // Remove the card from the UI
+        const card = document.querySelector(`[data-id="${automationId}"]`);
+        if (card) {
+          card.remove();
+        }
+        deleteModalBg.style.display = 'none';
+      } else {
+        alert('Error deleting automation: ' + (data.message || 'Unknown error'));
+      }
+    })
+    .catch(error => {
+      alert('Error deleting automation: ' + error.message);
+    });
   });
 });
 </script>
@@ -925,40 +1046,89 @@ document.addEventListener('DOMContentLoaded', function() {
   var deactivateAssignedUsers = document.getElementById('deactivate-assigned-users');
   activeInactiveBtns.forEach(function(btn) {
           btn.addEventListener('click', function(e) {
-        if (btn.classList.contains('active')) {
-          // About to deactivate
-          // Check if there are assigned users (you can replace this with actual data)
-          var hasAssignedUsers = false; // Set to false for demo - no users assigned
-          if (hasAssignedUsers) {
             e.preventDefault();
-            deactivateAutomationName.textContent = 'Lead Generation Bot';
-            deactivateAssignedUsers.textContent = 'John Doe, Jane Smith';
-            deactivateModalBg.style.display = 'flex';
-            // Store the button for later
-            deactivateModalBg._targetBtn = btn;
-            return;
-          }
-        }
-        // Otherwise, toggle as normal
-        if (btn.classList.contains('active')) {
-          btn.classList.remove('active');
-          btn.classList.add('inactive');
-          btn.querySelector('.active-inactive-label').textContent = 'Inactive';
-          // Update the card's data-status attribute
           var card = btn.closest('.automation-card');
-          if (card) {
-            card.setAttribute('data-status', 'inactive');
-          }
+      var automationId = card.getAttribute('data-id');
+      var currentStatus = btn.classList.contains('active') ? 'active' : 'inactive';
+      var newStatus = currentStatus === 'active' ? 'inactive' : 'active';
+      // Optimistically update UI
+      btn.classList.toggle('active');
+      btn.classList.toggle('inactive');
+      btn.querySelector('.active-inactive-label').textContent = newStatus.charAt(0).toUpperCase() + newStatus.slice(1);
+      if (card) card.setAttribute('data-status', newStatus);
+      // Toggle icon display
+      var playIcon = btn.querySelector('.play-icon');
+      var pauseIcon = btn.querySelector('.pause-icon');
+      if (newStatus === 'active') {
+        playIcon.style.display = 'inline';
+        pauseIcon.style.display = 'none';
+      } else {
+        playIcon.style.display = 'none';
+        pauseIcon.style.display = 'inline';
+      }
+      // Send AJAX request to update status in DB
+      fetch('agency_handler/edit_automation.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'automation_id=' + encodeURIComponent(automationId) + '&status=' + encodeURIComponent(newStatus)
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (!data.success) {
+          // Revert UI if failed
+          btn.classList.toggle('active');
+          btn.classList.toggle('inactive');
+          btn.querySelector('.active-inactive-label').textContent = currentStatus.charAt(0).toUpperCase() + currentStatus.slice(1);
+          if (card) card.setAttribute('data-status', currentStatus);
+          // Revert icon
+          if (currentStatus === 'active') {
+            playIcon.style.display = 'inline';
+            pauseIcon.style.display = 'none';
         } else {
-          btn.classList.remove('inactive');
-          btn.classList.add('active');
-          btn.querySelector('.active-inactive-label').textContent = 'Active';
-          // Update the card's data-status attribute
-          var card = btn.closest('.automation-card');
-          if (card) {
-            card.setAttribute('data-status', 'active');
+            playIcon.style.display = 'none';
+            pauseIcon.style.display = 'inline';
           }
+          alert('Failed to update status: ' + (data.message || 'Unknown error'));
+        } else {
+          // Show notification on success
+          var notif = document.createElement('div');
+          notif.textContent = data.notificationMsg || (newStatus === 'active' ? 'Automation has been activated' : 'Automation deactivated');
+          notif.style.position = 'fixed';
+          notif.style.top = '32px';
+          notif.style.right = '32px';
+          notif.style.zIndex = 9999;
+          notif.style.padding = '16px 28px';
+          notif.style.borderRadius = '12px';
+          notif.style.fontWeight = '800';
+          notif.style.fontSize = '1.1em';
+          notif.style.boxShadow = '0 2px 16px #0008';
+          notif.style.color = '#fff';
+          notif.style.background = (data.notificationType === 'success' || newStatus === 'active') ? '#1ec97e' : '#e3342f';
+          notif.style.transition = 'opacity 0.3s';
+          notif.style.opacity = '1';
+          document.body.appendChild(notif);
+          setTimeout(function() {
+            notif.style.opacity = '0';
+            setTimeout(function() { notif.remove(); }, 400);
+          }, 2200);
         }
+      })
+      .catch(() => {
+        // Revert UI if failed
+        btn.classList.toggle('active');
+        btn.classList.toggle('inactive');
+        btn.querySelector('.active-inactive-label').textContent = currentStatus.charAt(0).toUpperCase() + currentStatus.slice(1);
+        if (card) card.setAttribute('data-status', currentStatus);
+        // Revert icon
+        if (currentStatus === 'active') {
+          playIcon.style.display = 'inline';
+          pauseIcon.style.display = 'none';
+        } else {
+          playIcon.style.display = 'none';
+          pauseIcon.style.display = 'inline';
+        }
+        alert('Failed to update status. Please try again.');
+      });
       });
   });
   cancelDeactivate.addEventListener('click', function() {
@@ -988,7 +1158,36 @@ document.addEventListener('DOMContentLoaded', function() {
   // Filter functionality
   var filterBtns = document.querySelectorAll('.automation-filter-btn');
   var automationCards = document.querySelectorAll('.automation-card');
-  
+  var automationCardsList = document.getElementById('automation-cards-list');
+  // Add or find the no-automations message element
+  var noAutomationsMsg = document.getElementById('no-automations-message');
+  if (!noAutomationsMsg && automationCardsList) {
+    noAutomationsMsg = document.createElement('div');
+    noAutomationsMsg.id = 'no-automations-message';
+    noAutomationsMsg.style.color = '#4a5a6a';
+    noAutomationsMsg.style.fontSize = '1.08em';
+    noAutomationsMsg.style.fontWeight = '600';
+    noAutomationsMsg.style.minHeight = '180px';
+    noAutomationsMsg.style.display = 'none';
+    noAutomationsMsg.style.alignItems = 'center';
+    noAutomationsMsg.style.justifyContent = 'center';
+    noAutomationsMsg.textContent = 'No Automations';
+    automationCardsList.parentNode.insertBefore(noAutomationsMsg, automationCardsList);
+  }
+  function updateNoAutomationsMsg() {
+    if (!automationCardsList) return;
+    var anyVisible = false;
+    automationCards.forEach(function(card) {
+      if (card.style.display !== 'none') anyVisible = true;
+    });
+    if (!anyVisible) {
+      if (noAutomationsMsg) noAutomationsMsg.style.display = 'flex';
+      automationCardsList.style.display = 'none';
+    } else {
+      if (noAutomationsMsg) noAutomationsMsg.style.display = 'none';
+      automationCardsList.style.display = 'flex';
+    }
+  }
   filterBtns.forEach(function(btn) {
     btn.addEventListener('click', function() {
       // Remove active class from all filter buttons
@@ -998,28 +1197,27 @@ document.addEventListener('DOMContentLoaded', function() {
         b.style.color = '#7ecbff';
         b.style.fontWeight = '700';
       });
-      
       // Add active class to clicked button
       btn.classList.add('active');
       btn.style.background = '#1ec6ff';
       btn.style.color = '#fff';
       btn.style.fontWeight = '800';
-      
       // Get the filter value
       var filter = btn.getAttribute('data-filter');
-      
       // Show/hide automation cards based on filter
       automationCards.forEach(function(card) {
         var status = card.getAttribute('data-status');
-        
         if (filter === 'all' || filter === status) {
           card.style.display = 'flex';
         } else {
           card.style.display = 'none';
         }
       });
+      updateNoAutomationsMsg();
     });
   });
+  // Initial check in case default filter is not 'all'
+  updateNoAutomationsMsg();
 });
 </script>
 <div id="assign-clients-modal-bg">
@@ -1190,26 +1388,46 @@ window.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
-<!-- Edit Automation Modal -->
-<div id="edit-automation-modal-bg" style="display:none;position:fixed;z-index:3000;top:0;left:0;width:100vw;height:100vh;background:rgba(10,20,40,0.45);align-items:center;justify-content:center;">
-  <div id="edit-automation-modal" style="background:#14213d;padding:32px 32px 24px 32px;border-radius:20px;box-shadow:0 2px 16px #22325a33;max-width:95vw;width:520px;text-align:left;">
-    <div style="font-size:1.25em;font-weight:800;color:#7ecbff;margin-bottom:12px;">Edit Automation</div>
-    <form id="edit-automation-form" autocomplete="off">
-      <input type="hidden" name="automation_id" id="edit-automation-id">
-      <label>Name
-        <input type="text" name="name" id="edit-automation-name" required style="margin-top:4px;padding:10px 14px;border-radius:8px;border:1.5px solid #22325a;background:#19253a;color:#fff;width:100%;font-size:1.08em;" />
+<!-- Edit Modal (empty with fade animations) -->
+<div id="edit-modal-bg" style="display:none;position:fixed;z-index:3000;top:0;left:0;width:100vw;height:100vh;background:rgba(10,20,40,0.45);align-items:center;justify-content:center;">
+  <div id="edit-modal" style="background:#14213d !important;padding:32px 48px;border-radius:20px;box-shadow:0 2px 16px #22325a33;max-width:95vw;width:600px;min-width:400px;text-align:left;">
+    <span class="panel-title" style="font-size:1.45em;font-weight:900;color:#fff;font-family:inherit;margin-bottom:0;">Edit Automation</span>
+    <div style="font-size:0.95em;font-weight:500;color:rgba(255,255,255,0.7);margin-bottom:4px;">Edit your automation details here.</div>
+    <form class="create-automation-form" id="edit-automation-form" style="background:transparent !important;">
+      <input type="hidden" name="edit_automation" value="1" />
+      <label class="full-width">Name
+        <input type="text" id="edit-name" name="name" required placeholder="Enter automation name" />
+      </label>
+      <label class="full-width">API
+        <input type="text" id="edit-api" name="api" required placeholder="Place your n8n and make API here" />
       </label>
       <label>Description
-        <textarea name="description" id="edit-automation-description" required style="margin-top:4px;padding:10px 14px;border-radius:8px;border:1.5px solid #22325a;background:#19253a;color:#fff;width:100%;font-size:1.08em;"></textarea>
+        <textarea id="edit-description" name="description" required placeholder="Enter automation description"></textarea>
       </label>
-      <label>Tags
-        <input type="text" name="tags" id="edit-automation-tags" style="margin-top:4px;padding:10px 14px;border-radius:8px;border:1.5px solid #22325a;background:#19253a;color:#fff;width:100%;font-size:1.08em;" />
+      <label>Automation Notes
+        <textarea id="edit-automation-notes" name="automation_notes" placeholder="Private notes (only visible to you)"></textarea>
+        <!-- Helper text removed for edit modal -->
+      </label>
+      <label>Automation Type
+        <select id="edit-type" name="type" required style="font-family: Consolas, 'Liberation Mono', Menlo, Courier, monospace;">
+          <option value="Lead Gen">Lead Gen</option>
+          <option value="Scraper">Scraper</option>
+          <option value="Cold Email">Cold Email</option>
+          <option value="Data Enrichment">Data Enrichment</option>
+          <option value="CRM Sync">CRM Sync</option>
+          <option value="Social Media">Social Media</option>
+          <option value="Outreach">Outreach</option>
+          <option value="Form Filler">Form Filler</option>
+          <option value="Email Verifier">Email Verifier</option>
+          <option value="Other">Other</option>
+        </select>
       </label>
       <label>Pricing (£)
-        <input type="number" name="pricing" id="edit-automation-pricing" required min="0" step="0.01" style="margin-top:4px;padding:10px 14px;border-radius:8px;border:1.5px solid #22325a;background:#19253a;color:#fff;width:100%;font-size:1.08em;" />
+        <input type="number" id="edit-pricing" name="pricing" required min="0" step="0.01" placeholder="e.g. 1200.00" />
+        <div class="pricing-note">Enter price such as (1200.00)</div>
       </label>
       <label>Pricing Model
-        <select name="pricing_model" id="edit-automation-pricing-model" required style="margin-top:4px;padding:10px 14px;border-radius:8px;border:1.5px solid #22325a;background:#19253a;color:#fff;width:100%;font-size:1.08em;">
+        <select id="edit-pricing-model" name="pricing_model" required style="font-family: Consolas, 'Liberation Mono', Menlo, Courier, monospace;">
           <option value="one_time">One Time</option>
           <option value="monthly">Monthly</option>
           <option value="free_trial">Free Trial</option>
@@ -1217,105 +1435,388 @@ window.addEventListener('DOMContentLoaded', function() {
           <option value="per_run">Per Run</option>
         </select>
       </label>
-      <label>Status
-        <select name="status" id="edit-automation-status" required style="margin-top:4px;padding:10px 14px;border-radius:8px;border:1.5px solid #22325a;background:#19253a;color:#fff;width:100%;font-size:1.08em;">
-          <option value="active">Active</option>
-          <option value="inactive">Inactive</option>
+      <label>Run Limit
+        <input type="number" id="edit-run-limit" name="run_limit" min="0" placeholder="e.g. 100" />
+        <div style="color: #7ecbff99; font-size: 0.85em; margin-top: 2px; font-family: Consolas, 'Liberation Mono', Menlo, Courier, monospace;">Maximum number of runs (leave empty for unlimited)</div>
+      </label>
+      <label>Scheduling
+        <select id="edit-scheduling" name="scheduling" required style="font-family: Consolas, 'Liberation Mono', Menlo, Courier, monospace;">
+          <option value="manual">Manual</option>
+          <option value="daily">Daily</option>
+          <option value="weekly">Weekly</option>
+          <option value="monthly">Monthly</option>
         </select>
       </label>
-      <div style="display:flex;gap:10px;margin-top:18px;">
-        <button type="button" id="cancel-edit-automation-btn" style="background:#22325a;color:#fff;font-weight:700;font-size:1.08em;padding:10px 28px;border:none;border-radius:8px;cursor:pointer;">Cancel</button>
-        <button type="submit" id="save-edit-automation-btn" style="background:#178fff;color:#fff;font-weight:700;font-size:1.08em;padding:10px 28px;border:none;border-radius:8px;cursor:pointer;">Save</button>
+      <label>Tags
+        <div class="tags-input-container">
+          <input type="text" id="edit-tag-input" placeholder="Add tags (max 3)" />
+          <div id="edit-tag-list" class="tag-list"></div>
+          <input type="hidden" name="tags" id="edit-tags-hidden" />
       </div>
-      <div id="edit-automation-error" style="display:none;color:#e3342f;background:#f8d7da;padding:10px;border-radius:6px;text-align:center;font-weight:700;margin-top:12px;"></div>
-      <div id="edit-automation-success" style="display:none;color:#4bb543;background:#d4edda;padding:10px;border-radius:6px;text-align:center;font-weight:700;margin-top:12px;"></div>
+      </label>
+      <div style="display: flex; justify-content: flex-end; grid-column: 1 / -1; margin-top: 18px;">
+        <button type="submit" class="create-automation-btn">Save Changes</button>
+      </div>
     </form>
   </div>
 </div>
 <script>
-// --- Edit Modal Logic ---
-let editAutomationModalBg = document.getElementById('edit-automation-modal-bg');
-let editAutomationForm = document.getElementById('edit-automation-form');
-let editAutomationError = document.getElementById('edit-automation-error');
-let editAutomationSuccess = document.getElementById('edit-automation-success');
-let saveEditAutomationBtn = document.getElementById('save-edit-automation-btn');
-let cancelEditAutomationBtn = document.getElementById('cancel-edit-automation-btn');
+document.addEventListener('DOMContentLoaded', function() {
+  const editModalBg = document.getElementById('edit-modal-bg');
+  const editModal = document.getElementById('edit-modal');
+  const editForm = document.getElementById('edit-automation-form');
+  let currentEditId = null;
+
+  // Helper to get text content safely
+  function getTextContent(el, selector) {
+    const found = el.querySelector(selector);
+    return found ? found.textContent.trim() : '';
+  }
+
+  // Edit button click handler
 document.querySelectorAll('.edit-btn').forEach(function(btn) {
   btn.addEventListener('click', function(e) {
     e.preventDefault();
     const card = btn.closest('.automation-card');
-    document.getElementById('edit-automation-id').value = card.getAttribute('data-id');
-    document.getElementById('edit-automation-name').value = card.querySelector('h3').textContent.trim();
-    document.getElementById('edit-automation-description').value = card.querySelector('p').textContent.trim();
-    document.getElementById('edit-automation-tags').value = Array.from(card.querySelectorAll('.automation-tag')).map(t=>t.textContent.trim()).join(', ');
-    document.getElementById('edit-automation-pricing').value = card.getAttribute('data-pricing');
-    document.getElementById('edit-automation-pricing-model').value = card.getAttribute('data-pricing-model');
-    document.getElementById('edit-automation-status').value = card.getAttribute('data-status');
-    editAutomationError.style.display = 'none';
-    editAutomationSuccess.style.display = 'none';
-    editAutomationModalBg.style.display = 'flex';
-    editAutomationModalBg.removeAttribute('fade-out');
-    editAutomationModalBg.setAttribute('fade-up', '');
+      currentEditId = card.getAttribute('data-id');
+      // Pre-fill fields
+      document.getElementById('edit-name').value = getTextContent(card, 'h3');
+      document.getElementById('edit-api').value = card.getAttribute('data-api') || '';
+      document.getElementById('edit-description').value = getTextContent(card, 'p');
+      // Automation Notes
+      let notes = '';
+      // Find the div with background:#22325a (private notes container)
+      const notesContainer = Array.from(card.querySelectorAll('div')).find(div => div.style.background === 'rgb(34, 50, 90)');
+      if (notesContainer) {
+        // The actual note is in the last child div
+        const noteDivs = notesContainer.querySelectorAll('div');
+        if (noteDivs.length > 1) {
+          notes = noteDivs[noteDivs.length-1].textContent.trim();
+        }
+      }
+      document.getElementById('edit-automation-notes').value = notes;
+      // Type
+      const typeTag = card.querySelector('.automation-tag');
+      document.getElementById('edit-type').value = typeTag ? typeTag.textContent.trim() : '';
+      // Pricing
+      document.getElementById('edit-pricing').value = card.getAttribute('data-pricing') || '';
+      // Pricing Model
+      document.getElementById('edit-pricing-model').value = card.getAttribute('data-pricing-model') || 'one_time';
+      // Run Limit
+      document.getElementById('edit-run-limit').value = card.getAttribute('data-run-limit') || '';
+      // Scheduling
+      document.getElementById('edit-scheduling').value = card.getAttribute('data-scheduling') || 'manual';
+      // Tags
+      let tags = '';
+      const tagBubbles = card.querySelectorAll('.automation-tag-bubble');
+      if (tagBubbles.length) {
+        tags = Array.from(tagBubbles).map(t => t.textContent.replace('#','').trim()).join(', ');
+      }
+      document.getElementById('edit-tag-input').value = '';
+      document.getElementById('edit-tags-hidden').value = tags;
+      // Render tag pills
+      const tagList = document.getElementById('edit-tag-list');
+      tagList.innerHTML = '';
+      if (tags) {
+        tags.split(',').slice(0,3).forEach((tag, idx) => {
+          let pill = document.createElement('span');
+          pill.className = 'tag-pill';
+          pill.textContent = tag.trim();
+          // Add remove icon
+          let remove = document.createElement('span');
+          remove.className = 'remove-tag';
+          remove.textContent = '×';
+          remove.onclick = function(e) {
+            e.stopPropagation();
+            let arr = document.getElementById('edit-tags-hidden').value.split(',').map(t=>t.trim()).filter(Boolean);
+            arr.splice(idx, 1);
+            document.getElementById('edit-tags-hidden').value = arr.join(', ');
+            pill.remove();
+          };
+          pill.appendChild(remove);
+          tagList.appendChild(pill);
+        });
+      }
+      // Show modal
+      editModalBg.style.display = 'flex';
+      editModal.classList.remove('hide');
+      setTimeout(() => editModal.classList.add('show'), 10);
+    });
   });
-});
-cancelEditAutomationBtn.addEventListener('click', function() {
-  editAutomationModalBg.removeAttribute('fade-up');
-  editAutomationModalBg.setAttribute('fade-out', '');
-  setTimeout(function() {
-    editAutomationModalBg.style.display = 'none';
-    editAutomationModalBg.removeAttribute('fade-out');
-  }, 450);
-});
-editAutomationModalBg.addEventListener('click', function(e) {
-  if (e.target === editAutomationModalBg) {
-    editAutomationModalBg.removeAttribute('fade-up');
-    editAutomationModalBg.setAttribute('fade-out', '');
-    setTimeout(function() {
-      editAutomationModalBg.style.display = 'none';
-      editAutomationModalBg.removeAttribute('fade-out');
-    }, 450);
-  }
-});
-editAutomationForm.addEventListener('submit', function(e) {
-  e.preventDefault();
-  saveEditAutomationBtn.disabled = true;
-  editAutomationError.style.display = 'none';
-  editAutomationSuccess.style.display = 'none';
-  const formData = new FormData(editAutomationForm);
-  fetch('agency_handler/edit_automation.php', {
-    method: 'POST',
-    body: formData
-  })
-  .then(res => res.json())
-  .then(data => {
-    saveEditAutomationBtn.disabled = false;
-    if (data.success) {
-      editAutomationSuccess.textContent = 'Automation updated successfully!';
-      editAutomationSuccess.style.display = 'block';
-      setTimeout(() => {
-        editAutomationModalBg.removeAttribute('fade-up');
-        editAutomationModalBg.setAttribute('fade-out', '');
-        setTimeout(function() {
-          editAutomationModalBg.style.display = 'none';
-          editAutomationModalBg.removeAttribute('fade-out');
-          location.reload();
-        }, 450);
-      }, 900);
-    } else {
-      editAutomationError.textContent = data.message || 'Failed to update automation.';
-      editAutomationError.style.display = 'block';
+
+  // Tag input logic for edit modal (max 3 tags)
+  const editTagInput = document.getElementById('edit-tag-input');
+  const editTagList = document.getElementById('edit-tag-list');
+  const editTagsHidden = document.getElementById('edit-tags-hidden');
+  if (editTagInput && editTagList && editTagsHidden) {
+    function renderEditTags() {
+      let arr = editTagsHidden.value.split(',').map(t=>t.trim()).filter(Boolean);
+      editTagList.innerHTML = '';
+      arr.slice(0,3).forEach((tag, idx) => {
+        let pill = document.createElement('span');
+        pill.className = 'tag-pill';
+        pill.textContent = tag;
+        let remove = document.createElement('span');
+        remove.className = 'remove-tag';
+        remove.textContent = '×';
+        remove.onclick = function(e) {
+          e.stopPropagation();
+          let arr2 = editTagsHidden.value.split(',').map(t=>t.trim()).filter(Boolean);
+          arr2.splice(idx, 1);
+          editTagsHidden.value = arr2.join(', ');
+          renderEditTags();
+        };
+        pill.appendChild(remove);
+        editTagList.appendChild(pill);
+      });
+      editTagInput.disabled = arr.length >= 3;
+      editTagInput.placeholder = arr.length >= 3 ? 'Maximum 3 tags reached' : 'Add tags (max 3)';
     }
-  })
-  .catch(() => {
-    saveEditAutomationBtn.disabled = false;
-    editAutomationError.textContent = 'Server error. Please try again.';
-    editAutomationError.style.display = 'block';
+    editTagInput.addEventListener('keydown', function(e) {
+      let arr = editTagsHidden.value.split(',').map(t=>t.trim()).filter(Boolean);
+      if ((e.key === 'Enter' || e.key === ',') && arr.length < 3) {
+        e.preventDefault();
+        let val = editTagInput.value.trim();
+        if (val && !arr.includes(val)) {
+          arr.push(val);
+          editTagsHidden.value = arr.join(', ');
+          renderEditTags();
+          editTagInput.value = '';
+        }
+      } else if ((e.key === 'Enter' || e.key === ',') && arr.length >= 3) {
+        e.preventDefault();
+      }
+    });
+    // Initial render
+    renderEditTags();
+    // Also re-render when modal opens
+    editModalBg.addEventListener('click', renderEditTags);
+  }
+
+  // Save changes (AJAX submit)
+  if (editForm) {
+    editForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+      if (!currentEditId) return;
+      // Always sync tag pills to hidden input before submit
+      if (editTagsHidden && editTagList) {
+        let pills = Array.from(editTagList.querySelectorAll('.tag-pill'));
+        let tags = pills.map(p => p.childNodes[0].nodeValue.trim()).filter(Boolean);
+        editTagsHidden.value = tags.join(', ');
+      }
+      const formData = new FormData(editForm);
+      formData.append('automation_id', currentEditId);
+      fetch('agency_handler/edit_automation.php', {
+        method: 'POST',
+        body: formData
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          // Update the automation card in the UI
+          const card = document.querySelector('.automation-card[data-id="' + currentEditId + '"]');
+          if (card) {
+            // Update tags visually
+            const tagsVal = editTagsHidden.value;
+            let tagsHtml = '';
+            if (tagsVal) {
+              tagsHtml = tagsVal.split(',').map(t => `<span class="automation-tag-bubble" style="background:#19253a;color:#7ecbff;padding:2px 10px;border-radius:12px;font-size:0.95em;font-weight:700;display:inline-block;transition:background 0.18s, color 0.18s;cursor:pointer;border:1.5px solid #7ecbff;">#${t.trim()}</span>`).join(' ');
+            }
+            const tagsListDiv = card.querySelector('.automation-tags-list');
+            if (tagsListDiv) tagsListDiv.innerHTML = tagsHtml;
+          }
+          editModal.classList.remove('show');
+          editModal.classList.add('hide');
+          setTimeout(() => {
+            editModalBg.style.display = 'none';
+            editModal.classList.remove('hide');
+          }, 350);
+        } else {
+          alert('Failed to update automation: ' + (data.message || 'Unknown error'));
+        }
+      })
+      .catch(() => {
+        alert('Failed to update automation. Please try again.');
+      });
+    });
+  }
+
+  // Close modal function (fade out)
+  function closeModal() {
+    editModal.classList.remove('show');
+    editModal.classList.add('hide');
+    setTimeout(() => {
+      editModalBg.style.display = 'none';
+      editModal.classList.remove('hide');
+    }, 350);
+  }
+
+  // Close button and background click handlers
+  const closeEditModal = document.getElementById('close-edit-modal');
+  if (closeEditModal) {
+    closeEditModal.addEventListener('click', closeModal);
+  }
+  editModalBg.addEventListener('click', function(e) {
+    if (e.target === editModalBg) closeModal();
   });
 });
-// Make My Automations non-horizontally-scrollable
-const myAutomationsBox = document.querySelector('[style*="My Automations"]');
-if (myAutomationsBox) {
-  myAutomationsBox.style.overflowX = 'visible';
-  myAutomationsBox.style.flexWrap = 'wrap';
+</script>
+<!-- Assign Users Modal (modular, fade in/out) -->
+<div id="assign-users-modal-bg" style="display:none;position:fixed;z-index:3000;top:0;left:0;width:100vw;height:100vh;background:rgba(10,20,40,0.45);align-items:center;justify-content:center;">
+  <div id="assign-users-modal" style="background:#14213d;padding:40px 40px 28px 40px;border-radius:20px;box-shadow:0 2px 16px #22325a33;max-width:95vw;width:420px;text-align:left;opacity:0;transform:translateY(40px);">
+    <div style="font-size:2.2em;font-weight:900;color:#fff;font-family:'Inter', Arial, sans-serif;margin-bottom:2px;">Assign Users</div>
+    <div style="font-size:1.08em;color:#b6c6d7;font-weight:600;font-family:'Inter', Arial, sans-serif;opacity:0.7;margin-bottom:8px;">Select which users should have access to this automation.</div>
+    <div id="assign-users-automation-name" style="font-size:1.08em;font-style:italic;color:#7ecbff;font-weight:700;font-family:'Inter', Arial, sans-serif;margin-bottom:14px;"></div>
+    <div style="margin-bottom:10px;"><label style="font-weight:600;color:#7ecbff;"><input type="checkbox" id="select-all-assign-users" style="margin-right:6px;">Select All</label></div>
+    <div id="assign-users-list" style="margin-bottom:18px;min-height:48px;"></div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:24px;">
+      <button type="button" id="close-assign-users-modal" style="background:#22325a;color:#fff;font-weight:700;font-size:1.08em;padding:10px 28px;border:none;border-radius:8px;cursor:pointer;">Close</button>
+      <button type="button" id="assign-users-btn" style="background:#178fff;color:#fff;font-weight:700;font-size:1.08em;padding:10px 28px;border:none;border-radius:8px;cursor:pointer;">Assign</button>
+    </div>
+  </div>
+</div>
+<style>
+@keyframes fadeInUpModal {
+  from { opacity: 0; transform: translateY(40px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeOutUpModal {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(-40px); }
+}
+#assign-users-modal.fade-in {
+  animation: fadeInUpModal 0.35s cubic-bezier(0.4,1.4,0.6,1) forwards;
+}
+#assign-users-modal.fade-out {
+  animation: fadeOutUpModal 0.35s cubic-bezier(0.4,1.4,0.6,1) forwards;
+}
+</style>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const assignUsersModalBg = document.getElementById('assign-users-modal-bg');
+  const assignUsersModal = document.getElementById('assign-users-modal');
+  const closeAssignUsersModal = document.getElementById('close-assign-users-modal');
+  const assignUsersList = document.getElementById('assign-users-list');
+  const assignUsersAutomationName = document.getElementById('assign-users-automation-name');
+  const selectAllAssignUsers = document.getElementById('select-all-assign-users');
+  const assignUsersBtn = document.getElementById('assign-users-btn');
+  let currentAutomationId = null;
+  document.querySelectorAll('.users-btn').forEach(function(btn) {
+    btn.addEventListener('click', function(e) {
+      e.preventDefault();
+      const card = btn.closest('.automation-card');
+      const automationId = card.getAttribute('data-id');
+      const automationName = card.querySelector('h3').textContent.trim();
+      assignUsersAutomationName.textContent = automationName;
+      currentAutomationId = automationId;
+      assignUsersModalBg.style.display = 'flex';
+      assignUsersModal.classList.remove('fade-out');
+      void assignUsersModal.offsetWidth;
+      assignUsersModal.classList.add('fade-in');
+      assignUsersList.innerHTML = '<div style="color:#7ecbff;font-weight:700;">Loading users...</div>';
+      fetch('agency_handler/fetch_agency_users.php?automation_id=' + encodeURIComponent(automationId))
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            if (data.users.length === 0) {
+              assignUsersList.innerHTML = '<div style="color:#e3342f;font-weight:700;">No users found for this agency.</div>';
+            } else {
+              assignUsersList.innerHTML = '';
+              data.users.forEach(user => {
+                const label = document.createElement('label');
+                label.style.display = 'block';
+                label.style.marginBottom = '10px';
+                label.style.fontWeight = '600';
+                label.style.fontSize = '0.77em';
+                label.style.color = '#fff';
+                label.style.fontFamily = "'Inter', Arial, sans-serif";
+                const cb = document.createElement('input');
+                cb.type = 'checkbox';
+                cb.value = user.id;
+                cb.checked = user.assigned;
+                label.appendChild(cb);
+                const nameSpan = document.createElement('span');
+                nameSpan.textContent = ' ' + user.name;
+                nameSpan.style.fontWeight = '600';
+                nameSpan.style.color = '#fff';
+                nameSpan.style.fontFamily = "'Inter', Arial, sans-serif";
+                nameSpan.style.fontSize = '1.155em';
+                label.appendChild(nameSpan);
+                const emailSpan = document.createElement('span');
+                emailSpan.textContent = ' (' + user.email + ')';
+                emailSpan.style.fontWeight = '400';
+                emailSpan.style.color = '#b6c6d7';
+                emailSpan.style.fontFamily = "'Inter', Arial, sans-serif";
+                emailSpan.style.fontSize = '1.155em';
+                label.appendChild(emailSpan);
+                assignUsersList.appendChild(label);
+              });
+              // After rendering, set up select all logic
+              const userCheckboxes = assignUsersList.querySelectorAll('input[type="checkbox"]');
+              function updateSelectAllState() {
+                const allChecked = Array.from(userCheckboxes).every(cb => cb.checked);
+                selectAllAssignUsers.checked = allChecked;
+              }
+              userCheckboxes.forEach(cb => {
+                cb.addEventListener('change', updateSelectAllState);
+              });
+              selectAllAssignUsers.addEventListener('change', function() {
+                userCheckboxes.forEach(cb => { cb.checked = selectAllAssignUsers.checked; });
+              });
+              updateSelectAllState();
+            }
+          } else {
+            assignUsersList.innerHTML = '<div style="color:#e3342f;font-weight:700;">Failed to fetch users</div>';
+          }
+        })
+        .catch(() => {
+          assignUsersList.innerHTML = '<div style="color:#e3342f;font-weight:700;">Error fetching users</div>';
+        });
+    });
+  });
+  function closeModal() {
+    assignUsersModal.classList.remove('fade-in');
+    assignUsersModal.classList.add('fade-out');
+    setTimeout(() => {
+      assignUsersModalBg.style.display = 'none';
+      assignUsersModal.classList.remove('fade-out');
+    }, 350);
+  }
+  closeAssignUsersModal.addEventListener('click', closeModal);
+  assignUsersModalBg.addEventListener('click', function(e) {
+    if (e.target === assignUsersModalBg) closeModal();
+  });
+
+  assignUsersBtn.addEventListener('click', function() {
+    // Collect selected user IDs
+    const userCheckboxes = assignUsersList.querySelectorAll('input[type="checkbox"]');
+    const selectedUserIds = Array.from(userCheckboxes).filter(cb => cb.checked).map(cb => cb.value);
+    if (!currentAutomationId) return;
+    assignUsersBtn.disabled = true;
+    assignUsersBtn.textContent = 'Assigning...';
+    fetch('agency_handler/assign_users_to_automation.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ automation_id: currentAutomationId, user_ids: selectedUserIds })
+    })
+    .then(res => res.json())
+    .then(data => {
+      assignUsersBtn.disabled = false;
+      assignUsersBtn.textContent = 'Assign';
+      if (data.success) {
+        closeModal();
+        // Optionally show a toast or success message
+      } else {
+        alert('Failed to assign users: ' + (data.message || 'Unknown error'));
+      }
+    })
+    .catch(() => {
+      assignUsersBtn.disabled = false;
+      assignUsersBtn.textContent = 'Assign';
+      alert('Failed to assign users. Please try again.');
+    });
+  });
+});
+</script>
 </body>
 </html> 

@@ -1,5 +1,4 @@
 <?php
-// sidebar.php
 if (!isset($active_page)) $active_page = '';
 ?>
 <aside class="sidebar" style="padding-top:0;margin-top:0;padding-bottom:0;background:#000f1d;">

@@ -1,5 +1,4 @@
 <?php
-// approval.php
 $user_name = 'Admin'; // Replace with session or actual user logic if needed
 // Include logout handler
 include_once 'logs/logout_handler.php';

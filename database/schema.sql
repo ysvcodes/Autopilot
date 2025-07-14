@@ -1,13 +1,13 @@
 CREATE DATABASE IF NOT EXISTS autopilot_db;
 USE autopilot_db;
 
--- Agencies
+-- 1. Agencies (no dependencies)
 CREATE TABLE IF NOT EXISTS agencies (
   agency_id INT AUTO_INCREMENT PRIMARY KEY,
   agency_name VARCHAR(255) NOT NULL UNIQUE
 );
 
--- Users 
+-- 2. Users (depends on agencies)
 CREATE TABLE IF NOT EXISTS users (
   id INT AUTO_INCREMENT PRIMARY KEY,
   agency_id INT NULL DEFAULT NULL ,
@@ -15,15 +15,19 @@ CREATE TABLE IF NOT EXISTS users (
   last_name VARCHAR(100) NOT NULL,
   email VARCHAR(255) NOT NULL UNIQUE,
   password_hash VARCHAR(255) NOT NULL,
+  phone_number VARCHAR(32) NULL,
+  notes TEXT NULL,
   role ENUM('user') DEFAULT 'user',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   CONSTRAINT fk_users_agency FOREIGN KEY (agency_id) REFERENCES agencies(agency_id) ON DELETE SET NULL
 );
 
+-- 3. Agency Admins (depends on agencies)
 CREATE TABLE IF NOT EXISTS agency_admins (
   id INT AUTO_INCREMENT PRIMARY KEY,
   agency_id INT NOT NULL,
+  agency_name VARCHAR(255) NOT NULL,
   first_name VARCHAR(100) NOT NULL,
   last_name VARCHAR(100) NOT NULL,
   users INT NULL,
@@ -35,12 +39,14 @@ CREATE TABLE IF NOT EXISTS agency_admins (
   CONSTRAINT fk_admins_agency FOREIGN KEY (agency_id) REFERENCES agencies(agency_id) ON DELETE CASCADE
 );
 
+-- 4. Agency Users (depends on agencies, users)
 CREATE TABLE IF NOT EXISTS agency_users (
   id INT AUTO_INCREMENT PRIMARY KEY,
   agency_id INT NOT NULL,
   user_id INT NOT NULL
 );
 
+-- 5. Internal (no dependencies)
 CREATE TABLE IF NOT EXISTS internal (
   id INT AUTO_INCREMENT PRIMARY KEY,
   name VARCHAR(255) NOT NULL UNIQUE,
@@ -50,6 +56,7 @@ CREATE TABLE IF NOT EXISTS internal (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
+-- 6. Automations (depends on agencies, agency_admins)
 CREATE TABLE IF NOT EXISTS automations (
   id INT AUTO_INCREMENT PRIMARY KEY,
   agency_id INT NOT NULL,
@@ -71,16 +78,21 @@ CREATE TABLE IF NOT EXISTS automations (
   CONSTRAINT fk_automations_admin FOREIGN KEY (admin_id) REFERENCES agency_admins(id) ON DELETE CASCADE
 );
 
--- Automation-User Sharing (many-to-many)
+-- 7. Automation-User Sharing (depends on automations, users)
+DROP TABLE IF EXISTS automation_users;
 CREATE TABLE IF NOT EXISTS automation_users (
   automation_id INT NOT NULL,
   user_id INT NOT NULL,
+  custom_pricing DECIMAL(10,2) NULL,
+  custom_pricing_model VARCHAR(32) NULL,
+  custom_schedule VARCHAR(32) NULL,
+  active BOOLEAN DEFAULT TRUE,
   PRIMARY KEY (automation_id, user_id),
   CONSTRAINT fk_automation_users_automation FOREIGN KEY (automation_id) REFERENCES automations(id) ON DELETE CASCADE,
   CONSTRAINT fk_automation_users_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
-
+-- 8. Activity Log (depends on agencies, users, agency_admins)
 CREATE TABLE IF NOT EXISTS activity_log (
   id INT AUTO_INCREMENT PRIMARY KEY,
   agency_id INT NOT NULL,
@@ -94,6 +106,7 @@ CREATE TABLE IF NOT EXISTS activity_log (
   CONSTRAINT fk_log_admin FOREIGN KEY (admin_id) REFERENCES agency_admins(id) ON DELETE SET NULL
 );
 
+-- 9. Automation Runs (depends on automations, users, agencies)
 CREATE TABLE IF NOT EXISTS automation_runs (
   id INT AUTO_INCREMENT PRIMARY KEY,
   automation_id INT NOT NULL,
@@ -108,6 +121,7 @@ CREATE TABLE IF NOT EXISTS automation_runs (
   CONSTRAINT fk_run_agency FOREIGN KEY (agency_id) REFERENCES agencies(agency_id) ON DELETE CASCADE
 );
 
+-- 10. Automation Errors (depends on automation_runs, automations, agencies, users)
 CREATE TABLE IF NOT EXISTS automation_errors (
   id INT AUTO_INCREMENT PRIMARY KEY,
   automation_run_id INT NOT NULL,
@@ -123,3 +137,7 @@ CREATE TABLE IF NOT EXISTS automation_errors (
   CONSTRAINT fk_error_agency FOREIGN KEY (agency_id) REFERENCES agencies(agency_id) ON DELETE CASCADE,
   CONSTRAINT fk_error_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
 );
+
+
+
+

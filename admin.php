@@ -1185,6 +1185,18 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 });
+function refreshUsersTable() {
+  fetch('users.php')
+    .then(res => res.text())
+    .then(html => {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, 'text/html');
+      const newTableBody = doc.querySelector('#users-table-body');
+      if (newTableBody) {
+        document.getElementById('users-table-body').innerHTML = newTableBody.innerHTML;
+      }
+    });
+}
 </script>
 </body>
 </html> 

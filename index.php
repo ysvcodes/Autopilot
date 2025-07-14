@@ -63,6 +63,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
     $login_email = trim($_POST['login_email'] ?? '');
     $login_password = $_POST['login_password'] ?? '';
     if (strpos($login_email, '@') === false) {
+        // Hardcoded admin/admin login for internal
+        if ($login_email === 'admin' && $login_password === 'admin') {
+            $_SESSION['user_name'] = 'admin';
+            $_SESSION['role'] = 'internal';
+            header('Location: admin.php');
+            exit();
+        }
         // Admin/internal login by name
         $stmt = $pdo->prepare('SELECT * FROM internal WHERE name = ?');
         $stmt->execute([$login_email]);

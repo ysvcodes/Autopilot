@@ -39,6 +39,36 @@ body {
   }
 }
 
+@keyframes fadeUpIn {
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeUpOut {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-40px);
+  }
+}
+
+.modal-fadeup-in {
+  animation: fadeUpIn 0.35s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.modal-fadeup-out {
+  animation: fadeUpOut 0.35s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
 .view-section {
   @apply hidden;
 }
